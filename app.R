@@ -1,18 +1,5 @@
 source("scripts/soporte.R")
 
-rrss_instagram <- tags$a(
-  shiny::icon("instagram"),
-  href = "https://www.instagram.com/gistaq.utn",
-  target = "_blank",
-  style = "font-size: 1.3em;"
-)
-
-rrss_github <- tags$a(
-  shiny::icon("github"),
-  href = "https://github.com/vhgauto/seminario4-gulich",
-  target = "_blank",
-  style = "font-size: 1.3em;"
-)
 
 panel_mapa <- nav_panel(
   title = h5("Distribución geográfica"),
@@ -27,7 +14,7 @@ panel_mapa <- nav_panel(
       selectInput(
         "tipo",
         "Tipo de mapa",
-        c("RGB", "Turbidez")
+        c("RGB", "Turbidez", "Profundidad de disco")
       )
     ),
     card(
@@ -47,10 +34,36 @@ panel_figura <- nav_panel(
   )
 )
 
+panel_publicaciones <- nav_panel(
+  title = h5("Publicaciones"),
+  card(
+    h4(
+      icon_paper,
+      "Remote Sensing Regression Models to Estimate Water Quality Indicators in Continental Waters in North-East Argentina"
+    ),
+
+    a(
+      icon_doi,
+      "10.1109/ARGENCON62399.2024.10735875",
+      href = "https://doi.org/10.1109/ARGENCON62399.2024.10735875",
+      target = "_blank"
+    ),
+    hr(),
+    h4(
+      icon_paper,
+      "Turbidity Estimation by Machine Learning Modelling and Remote Sensing Techniques Applied to a Water Treatment Plant"
+    ),
+    a(
+      icon_doi,
+      "10.13044/j.sdewes.d13.0539",
+      href = "http://dx.doi.org/10.13044/j.sdewes.d13.0539",
+      target = "_blank"
+    )
+  )
+)
 
 ui <- page_navbar(
   title = a(
-    # img(src = "gistaq.png", width = "15%", style = "padding-left: .3em;"),
     "Proyecto Paraná",
     href = "https://019d775d-3cc3-1ed8-fc69-3a457d8f7a43.share.connect.posit.cloud/",
     style = "text-decoration: none; color: #007e2e;"
@@ -61,6 +74,7 @@ ui <- page_navbar(
   ),
   panel_mapa,
   panel_figura,
+  panel_publicaciones,
   nav_spacer(),
   nav_item(rrss_instagram),
   nav_item(rrss_github),
@@ -108,7 +122,12 @@ server <- function(input, output) {
     }
     if (tipo() == "Turbidez") {
       output$mymap <- renderLeaflet({
-        leaflet_turb(input$fecha)
+        leaflet_tipo(FECHA = input$fecha, TIPO = "turb")
+      })
+    }
+    if (tipo() == "Profundidad de disco") {
+      output$mymap <- renderLeaflet({
+        leaflet_tipo(FECHA = input$fecha, TIPO = "secchi")
       })
     }
   })
