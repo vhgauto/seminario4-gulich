@@ -1,0 +1,62 @@
+/*-- scss:defaults --*/
+
+// Poncho
+@import "https://raw.githubusercontent.com/argob/poncho/refs/heads/master/dist/css/icono-arg.css";
+
+// Nerd Font
+@import "https://www.nerdfonts.com/assets/css/webfont.css";
+
+// JetBrains Mono
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
+// Rufina
+@import url('https://fonts.googleapis.com/css2?family=Rufina:wght@400;700&display=swap');
+
+// Noto Sans
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+
+// FUENTES ---------------------------------------------------------------------
+
+$font-family-sans-serif: "Noto Sans", serif !default;
+$font-family-monospace: "JetBrains Mono";
+$presentation-font-size-root: 30px;
+
+// COLORES ---------------------------------------------------------------------
+
+$naranja: #e35e28;
+$verde: #007e2e;
+// $azul: #1A428A;
+// $blanco: #FFFFFF;
+// $celeste: #6AAAE4;
+// $gris: #c0c0c0 ;
+// $gris2: #4D4D4D;
+// $rosa: #F79CD4;
+// $negro: #131E29;
+// $rosa-claro: lighthen($rosa, 60);
+// $code-bg: #E5E5E5;
+// $code-color: $negro;
+
+// $body-bg: $azul !default;
+// $body-color: $blanco !default;
+// $link-color: darken($rosa, 10) !default;
+// $link-hover-color: darken($rosa, 25) !default;
+
+// $selection-bg: $gris !default;
+
+/*-- scss:rules --*/
+
+:root {
+    // --bs-navbar-padding-y: 2rem !important; 
+}
+
+.navbar-brand {
+    font-family: Rufina;
+    font-weight: bold;
+    font-size: 2em;
+    margin-right: 2em;
+    color: $verde;
+}
+
+.bslib-page-navbar .navbar, .bslib-page-dashboard .navbar {
+    border-bottom: solid black 1px;
+}
