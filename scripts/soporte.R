@@ -1,10 +1,13 @@
-# library(tidyverse)
+# paquetes ---------------------------------------------------------------
+
 library(shiny)
 library(bslib)
 library(leaflet)
 library(terra)
 library(leafem)
 library(leaflet.extras)
+
+# datos ------------------------------------------------------------------
 
 l <- list.files("recortes/", full.names = TRUE)
 fechas <- basename(l) |>
@@ -13,6 +16,9 @@ fechas <- basename(l) |>
 r <- lapply(l, rast)
 r <- setNames(r, fechas)
 
+# funciones --------------------------------------------------------------
+
+# convierte el ráster a escala de 255 para visualizar en color real RGB
 f_escalado <- function(FECHA) {
   w <- r[[as.character(FECHA)]]
 
@@ -27,17 +33,31 @@ f_escalado <- function(FECHA) {
   return(w)
 }
 
+# extrae los píxeles de agua y aplica modelo de turbidez
 f_turb <- function(FECHA) {
   y <- r[[as.character(FECHA)]]
   mndwi <- (y$B03 - y$B11) / (y$B03 + y$B11)
   mascara <- thresh(mndwi, method = "otsu")
   mascara[isFALSE(mascara)] <- NA
   y_mascara <- y * mascara
-  turb <- 200 * y_mascara$B05 + 10
-  turb <- setNames(turb, "turb")
-  return(turb)
+  p <- 200 * y_mascara$B05 + 10
+  p <- setNames(p, "turb")
+  return(p)
 }
 
+# extrae los píxeles de agua y aplica modelo de profundidad de disco
+f_secchi <- function(FECHA) {
+  y <- r[[as.character(FECHA)]]
+  mndwi <- (y$B03 - y$B11) / (y$B03 + y$B11)
+  mascara <- thresh(mndwi, method = "otsu")
+  mascara[isFALSE(mascara)] <- NA
+  y_mascara <- y * mascara
+  p <- 10 * y_mascara$B05 + 5
+  p <- setNames(p, "secchi")
+  return(p)
+}
+
+# mapa leaflet de ráster en color real RGB
 leaflet_rgb <- function(FECHA) {
   leaflet() |>
     addTiles(group = "OSM (default)") |>
@@ -73,16 +93,30 @@ leaflet_rgb <- function(FECHA) {
     addFullscreenControl(position = "bottomright")
 }
 
-leaflet_turb <- function(FECHA) {
-  r_turb <- f_turb(FECHA)
-  g <- global(r_turb, c("min", "max"), na.rm = TRUE)
+# mapa leaflet de ráster de turbidez
+leaflet_tipo <- function(FECHA, TIPO) {
+  if (TIPO == "turb") {
+    p <- f_turb(FECHA)
+    pal_nombre <- "YlGnBu"
+    grupo <- "Turbidez (NTU)"
+    titulo <- "Turbidez<br>(NTU)"
+  }
+
+  if (TIPO == "secchi") {
+    p <- f_secchi(FECHA)
+    pal_nombre <- "YlOrBr"
+    grupo <- "Profuncidad de disco (cm)"
+    titulo <- "Profuncidad de<br>disco (cm)"
+  }
+
+  g <- global(p, c("min", "max"), na.rm = TRUE)
   d <- .1
-  r_turb[r_turb < (1 + d) * g$min] <- NA
-  r_turb[r_turb > (1 - d) * g$max] <- NA
-  v <- na.omit(values(r_turb))
+  p[p < (1 + d) * g$min] <- NA
+  p[p > (1 - d) * g$max] <- NA
+  v <- na.omit(values(p))
 
   pal <- colorNumeric(
-    palette = "YlGnBu",
+    palette = pal_nombre,
     domain = v,
     na.color = NA
   )
@@ -100,15 +134,15 @@ leaflet_turb <- function(FECHA) {
       options = providerTileOptions(noWrap = TRUE)
     ) |>
     addRasterImage(
-      r_turb,
+      p,
       colors = pal,
-      group = "Turbidez (NTU)",
-      layerId = "Turbidez (NTU)"
+      group = grupo,
+      layerId = grupo
     ) |>
     addImageQuery(
-      r_turb,
-      layerId = "Turbidez (NTU)",
-      group = "Turbidez (NTU)",
+      p,
+      layerId = grupo,
+      group = grupo,
       digits = 1,
       prefix = ""
     ) |>
@@ -117,7 +151,7 @@ leaflet_turb <- function(FECHA) {
       values = v,
       opacity = 1,
       position = "bottomright",
-      title = "Turbidez<br>(NTU)"
+      title = titulo
     ) |>
     addLayersControl(
       baseGroups = c(
@@ -125,9 +159,28 @@ leaflet_turb <- function(FECHA) {
         "Positron (minimal)",
         "World Imagery (satellite)"
       ),
-      overlayGroups = "Turbidez (NTU)",
+      overlayGroups = grupo,
       options = layersControlOptions(collapsed = TRUE)
     ) |>
     addResetMapButton() |>
     addFullscreenControl(position = "bottomright")
 }
+
+# links ------------------------------------------------------------------
+
+rrss_instagram <- tags$a(
+  shiny::icon("instagram"),
+  href = "https://www.instagram.com/gistaq.utn",
+  target = "_blank",
+  style = "font-size: 1.3em;"
+)
+
+rrss_github <- tags$a(
+  shiny::icon("github"),
+  href = "https://github.com/vhgauto/seminario4-gulich",
+  target = "_blank",
+  style = "font-size: 1.3em;"
+)
+
+icon_doi <- HTML('<span class="simple-icons--doi"></span>')
+icon_paper <- HTML('<span class="quill--paper"></span>')
