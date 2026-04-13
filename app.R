@@ -1,6 +1,5 @@
 source("scripts/soporte.R")
 
-
 panel_mapa <- nav_panel(
   title = h5("Distribución geográfica"),
   layout_sidebar(
@@ -41,7 +40,6 @@ panel_publicaciones <- nav_panel(
       icon_paper,
       "Remote Sensing Regression Models to Estimate Water Quality Indicators in Continental Waters in North-East Argentina"
     ),
-
     a(
       icon_doi,
       "10.1109/ARGENCON62399.2024.10735875",
@@ -62,6 +60,139 @@ panel_publicaciones <- nav_panel(
   )
 )
 
+panel_integrantes <- nav_panel(
+  title = h5("Integrantes"),
+  card(
+    h1("Integrantes"),
+    span(
+      "Víctor Gauto",
+      a(
+        HTML(
+          '<span class="simple-icons--orcid"></span>'
+        ),
+        href = "https://orcid.org/0000-0001-9960-8558",
+        target = "_blank"
+      ),
+      a(
+        HTML('<span class="ic--round-email"></span>'),
+        href = "mailto:victor.gauto@ca.frre.utn.edu.ar",
+        target = "_blank"
+      )
+    ),
+    span(
+      "Enid Utgés",
+      a(
+        HTML('<span class="simple-icons--orcid"></span>'),
+        href = "https://orcid.org/0009-0003-5263-5198",
+        target = "_blank"
+      )
+    ),
+    span(
+      "Matías Bonansea",
+      a(
+        HTML('<span class="simple-icons--orcid"></span>'),
+        href = "https://orcid.org/0000-0003-1953-2595",
+        target = "_blank"
+      )
+    ),
+    span(
+      "Anabella Ferral",
+      a(
+        HTML('<span class="simple-icons--orcid"></span>'),
+        href = "https://orcid.org/0000-0002-9383-7728",
+        target = "_blank"
+      )
+    ),
+    span(
+      "Osvaldo Cardozo",
+      a(
+        HTML('<span class="simple-icons--orcid"></span>'),
+        href = "https://orcid.org/0000-0002-0345-4505"
+      )
+    )
+  ),
+  card(
+    h1("Instituciones"),
+    span(
+      a(
+        img(
+          src = "logo_gistaq.png",
+          height = "70"
+        ),
+        href = "https://www.instagram.com/gistaq.utn",
+        target = "_blank",
+        .noWS = "before-end"
+      ),
+      a(
+        img(
+          src = "logo_ig.png",
+          height = "70"
+        ),
+        href = "https://www.instagram.com/gistaq.utn",
+        target = "_blank",
+        .noWS = "before-end"
+      ),
+      a(
+        img(
+          src = "logo_iidthh.png",
+          height = "70"
+        ),
+        href = "https://www.instagram.com/gistaq.utn",
+        target = "_blank",
+        .noWS = "before-end"
+      ),
+      a(
+        img(
+          src = "logo_conae.png",
+          height = "70"
+        ),
+        href = "https://www.instagram.com/gistaq.utn",
+        target = "_blank",
+        .noWS = "before-end"
+      ),
+      class = "eqi-container"),
+    span(
+      a(
+        img(
+          src = "logo_utn.png",
+          height = "70"
+        ),
+        href = "https://www.instagram.com/gistaq.utn",
+        target = "_blank",
+        .noWS = "before-end"
+      ),
+      a(
+        img(
+          src = "logo_unc.svg",
+          height = "70"
+        ),
+        href = "https://www.instagram.com/gistaq.utn",
+        target = "_blank",
+        .noWS = "before-end"
+      ),
+      a(
+        img(
+          src = "logo_unne.png",
+          height = "70"
+        ),
+        href = "https://www.instagram.com/gistaq.utn",
+        target = "_blank",
+        .noWS = "before-end"
+      ),
+      a(
+        img(
+          src = "logo_conicet.png",
+          height = "70"
+        ),
+        href = "https://www.instagram.com/gistaq.utn",
+        target = "_blank",
+        .noWS = "before-end"
+      ),
+      class = "eqi-container"
+    )
+  )
+)
+
 ui <- page_navbar(
   title = a(
     "Proyecto Paraná",
@@ -75,6 +206,7 @@ ui <- page_navbar(
   panel_mapa,
   panel_figura,
   panel_publicaciones,
+  panel_integrantes,
   nav_spacer(),
   nav_item(rrss_instagram),
   nav_item(rrss_github),
@@ -84,13 +216,15 @@ ui <- page_navbar(
       a(
         strong("Víctor Gauto"),
         href = "mailto:victor.gauto@outlook.com",
-        target = "_blank"
+        target = "_blank",
+        .noWS = "before-end"
       ),
       "|",
       a(
         icon("instagram"),
         href = "https://www.instagram.com/vhgauto",
-        target = "_blank"
+        target = "_blank",
+        .noWS = "before-end"
       ),
       a(
         icon("github"),
