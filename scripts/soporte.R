@@ -11,6 +11,7 @@ library(ggplot2)
 library(ggiraph)
 library(ggtext)
 library(glue)
+library(patchwork)
 library(ggthemes)
 
 violeta <- "#341648"
@@ -201,19 +202,56 @@ icon_paper <- HTML('<span class="quill--paper"></span>')
 banda_fct <- c("B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12")
 
 d <- read.csv("datos/lab_gis.csv") |> 
+  as_tibble() |> 
   mutate(banda = factor(x = banda, levels = banda_fct))
 
 f_firma_espectral <- function(FECHA, VAR) {
-  g <- filter(d, fecha == FECHA) |> 
+  e1 <- filter(d, fecha == FECHA) |> 
+    distinct(punto, longitud)
+  e2 <- filter(d, fecha == FECHA) |> 
     select(all_of(c("punto", "banda", VAR))) |> 
     rename("y" = 3) |> 
-    ggplot(aes(banda, y, group = punto)) +
-    geom_line_interactive(aes(data_id = punto), linewidth = 1) +
+    distinct()
+  
+  g1 <- ggplot(e1, aes(longitud, 1, fill = as.factor(punto))) +
+    geom_point_interactive(
+      aes(data_id = punto, tooltip = glue("Punto: {punto}")),
+      hover_nearest = TRUE , size = 3, shape = 21, stroke = 1, alpha = 1) +
+    annotate(
+      geom = "text",
+      x = c(-Inf, Inf),
+      y = 1,
+      label = c("Orilla\nChaco", "Orilla\nCorrientes"),
+      hjust = c(0, 1),
+      vjust = -.5,
+      size = 3,
+      family = "Fira Code"
+    ) +
+    scale_x_continuous(expand = expansion(mult = .1, add = 0)) +
+    scale_fill_manual(
+      values = colorRampPalette(c("brown", "turquoise"))(length(unique(e1$punto))),
+      guide = guide_none()
+    ) +
+    coord_cartesian(clip = "off", expand = FALSE) +
+    theme_void(base_family = "Fira Code")
+    # # theme_sub_axis(text = element_text(color = negro)) +
+    # # theme_sub_axis_y(title = element_markdown(angle = 0, vjust = .5)) +
+    # theme_sub_panel(grid.major = element_line(color = "grey80", linewidth = .2),
+    #                 background = element_blank()) +
+    # theme_sub_plot(background = element_blank())
+  
+  g2 <-  ggplot(e2, aes(banda, y, group = punto, color = as.factor(punto))) +
+    geom_line_interactive(aes(data_id = punto), linewidth = 1, alpha = .5) +
     geom_point_interactive(
       aes(tooltip = round(y, 2), data_id = punto),
-      hover_nearest = TRUE , size = 2
+      hover_nearest = TRUE , size = 1.7, shape = 21, fill = "white", stroke = 1,
+      alpha = .5
     ) +
     labs(x = NULL, y = "R<sub>rs</sub>") +
+    scale_color_manual(
+      values = colorRampPalette(c("brown", "turquoise"))(length(unique(e2$punto))),
+      guide = guide_none()
+    ) +
     theme_few(base_family = "Fira Code") +
     theme_sub_axis(text = element_text(color = negro)) +
     theme_sub_axis_y(title = element_markdown(angle = 0, vjust = .5)) +
@@ -221,19 +259,27 @@ f_firma_espectral <- function(FECHA, VAR) {
                     background = element_blank()) +
     theme_sub_plot(background = element_blank())
   
+  g3 <- g1/g2 + plot_layout(heights = c(1, 5)) &
+    theme_sub_panel(grid.major = element_line(color = "grey80", linewidth = .2),
+                    background = element_blank()) +
+    theme_sub_plot(background = element_rect(
+      fill = "transparent",
+      color = "transparent"
+    ))
+  
   girafe(
-    ggobj = g,
+    ggobj = g3,
     options = list(
       opts_hover_inv(css = "opacity:.2"),
       opts_hover(css = girafe_css(
         css = "",
-        point = "fill:red;",
-        line = "stroke:red;"
+        point = "opacity:1;",
+        line = "opacity:1;"
       )),
       opts_tooltip(
         opacity = 1,
         css = glue(
-          "color:{negro};padding:5px;",
+          "color:{negro};padding:5px;font-family: Fira Code;",
           "border-style:solid;border-color:{violeta};background:{blanco}"
         ),
         use_cursor_pos = TRUE,
@@ -245,5 +291,5 @@ f_firma_espectral <- function(FECHA, VAR) {
   )
 }
   
-# f_firma_espectral(fechas[1], "reflect_sen2cor")
+f_firma_espectral(fechas[3], "reflect_sen2cor")
 
