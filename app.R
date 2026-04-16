@@ -29,7 +29,11 @@ panel_figura <- nav_panel(
     layout_sidebar(
       sidebar = sidebar(
         title = h1("Opciones"),
-        selectInput("firma_espectral_sensor", "Sensor", c("ACOLITE", "SEN2COR")),
+        selectInput(
+          "firma_espectral_sensor",
+          "Sensor",
+          c("ACOLITE", "SEN2COR")
+        ),
         selectInput(
           "fecha_firma_espectral",
           "Fecha",
@@ -166,7 +170,8 @@ panel_integrantes <- nav_panel(
         target = "_blank",
         .noWS = "before-end"
       ),
-      class = "eqi-container"),
+      class = "eqi-container"
+    ),
     span(
       a(
         img(
@@ -282,19 +287,25 @@ server <- function(input, output) {
       })
     }
   })
-  
-  observeEvent(input$firma_espectral_sensor ,{
+
+  observeEvent(input$firma_espectral_sensor, {
     sensor <- reactive(input$firma_espectral_sensor)
-    
+
     if (sensor() == "ACOLITE") {
       output$firma_espectral_plot <- renderGirafe({
-        f_firma_espectral(FECHA = input$fecha_firma_espectral, VAR = "reflect_acolite")
+        f_firma_espectral(
+          FECHA = input$fecha_firma_espectral,
+          VAR = "reflect_acolite"
+        )
       })
     }
-    
+
     if (sensor() == "SEN2COR") {
       output$firma_espectral_plot <- renderGirafe({
-        f_firma_espectral(FECHA = input$fecha_firma_espectral, VAR = "reflect_sen2cor")
+        f_firma_espectral(
+          FECHA = input$fecha_firma_espectral,
+          VAR = "reflect_sen2cor"
+        )
       })
     }
   })
