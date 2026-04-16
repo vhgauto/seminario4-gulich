@@ -24,12 +24,28 @@ panel_mapa <- nav_panel(
 )
 
 panel_figura <- nav_panel(
-  title = h5("Figuras"),
-  layout_sidebar(
-    sidebar = sidebar(
-      title = h1("Control")
-    ),
-    h1("Cuestiones")
+  title = h5("Firma espectral"),
+  card(
+    layout_sidebar(
+      sidebar = sidebar(
+        title = h1("Opciones"),
+        selectInput("firma_espectral_sensor", "Sensor", c("ACOLITE", "SEN2COR")),
+        selectInput(
+          "fecha_firma_espectral",
+          "Fecha",
+          fechas
+        ),
+        card(
+          "Corrección atmosférica",
+          h2("ACOLITE"),
+          "cosas",
+          h2("Sen2Cor"),
+          "cosas"
+        )
+      ),
+      h1("Cuestiones"),
+      girafeOutput("firma_espectral_plot")
+    )
   )
 )
 
@@ -240,6 +256,7 @@ ui <- page_navbar(
     bg = "#f2f2f2",
     base_font = font_google("Nunito"),
     heading_font = font_google("Bebas Neue"),
+    code_font = font_google("Fira Code"),
     primary = "#9f2d54"
   ) |>
     bs_add_rules(sass::sass_file("extras/mis_estilos.scss"))
@@ -262,6 +279,22 @@ server <- function(input, output) {
     if (tipo() == "Profundidad de disco") {
       output$mymap <- renderLeaflet({
         leaflet_tipo(FECHA = input$fecha, TIPO = "secchi")
+      })
+    }
+  })
+  
+  observeEvent(input$firma_espectral_sensor ,{
+    sensor <- reactive(input$firma_espectral_sensor)
+    
+    if (sensor() == "ACOLITE") {
+      output$firma_espectral_plot <- renderGirafe({
+        f_firma_espectral(FECHA = input$fecha_firma_espectral, VAR = "reflect_acolite")
+      })
+    }
+    
+    if (sensor() == "SEN2COR") {
+      output$firma_espectral_plot <- renderGirafe({
+        f_firma_espectral(FECHA = input$fecha_firma_espectral, VAR = "reflect_sen2cor")
       })
     }
   })
