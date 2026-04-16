@@ -2,10 +2,21 @@
 
 library(shiny)
 library(bslib)
-library(leaflet)
 library(terra)
+library(leaflet)
 library(leafem)
 library(leaflet.extras)
+library(dplyr)
+library(ggplot2)
+library(ggiraph)
+library(ggtext)
+library(glue)
+library(ggthemes)
+
+violeta <- "#341648"
+verde <- "#007e2e"
+blanco <- "#f2f2f2"
+negro <- "#000000"
 
 # datos ------------------------------------------------------------------
 
@@ -184,3 +195,55 @@ rrss_github <- tags$a(
 
 icon_doi <- HTML('<span class="simple-icons--doi"></span>')
 icon_paper <- HTML('<span class="quill--paper"></span>')
+
+# datos gis/lab -----------------------------------------------------------
+
+banda_fct <- c("B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12")
+
+d <- read.csv("datos/lab_gis.csv") |> 
+  mutate(banda = factor(x = banda, levels = banda_fct))
+
+f_firma_espectral <- function(FECHA, VAR) {
+  g <- filter(d, fecha == FECHA) |> 
+    select(all_of(c("punto", "banda", VAR))) |> 
+    rename("y" = 3) |> 
+    ggplot(aes(banda, y, group = punto)) +
+    geom_line_interactive(aes(data_id = punto), linewidth = 1) +
+    geom_point_interactive(
+      aes(tooltip = round(y, 2), data_id = punto),
+      hover_nearest = TRUE , size = 2
+    ) +
+    labs(x = NULL, y = "R<sub>rs</sub>") +
+    theme_few(base_family = "Fira Code") +
+    theme_sub_axis(text = element_text(color = negro)) +
+    theme_sub_axis_y(title = element_markdown(angle = 0, vjust = .5)) +
+    theme_sub_panel(grid.major = element_line(color = "grey80", linewidth = .2),
+                    background = element_blank()) +
+    theme_sub_plot(background = element_blank())
+  
+  girafe(
+    ggobj = g,
+    options = list(
+      opts_hover_inv(css = "opacity:.2"),
+      opts_hover(css = girafe_css(
+        css = "",
+        point = "fill:red;",
+        line = "stroke:red;"
+      )),
+      opts_tooltip(
+        opacity = 1,
+        css = glue(
+          "color:{negro};padding:5px;",
+          "border-style:solid;border-color:{violeta};background:{blanco}"
+        ),
+        use_cursor_pos = TRUE,
+        offx = 5,
+        offy = 5
+      )
+    ),
+    bg = "transparent"
+  )
+}
+  
+# f_firma_espectral(fechas[1], "reflect_sen2cor")
+
