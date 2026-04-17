@@ -6,15 +6,15 @@ library(terra)
 library(leaflet)
 library(leafem)
 library(leaflet.extras)
-library(dplyr)
-library(ggplot2)
 library(ggiraph)
 library(ggtext)
-library(glue)
 library(patchwork)
 library(ggthemes)
+library(gt)
+library(glue)
+library(tidyverse)
 
-violeta <- "#341648"
+violeta <- "#341648" # MetBrewer: Tam
 verde <- "#007e2e"
 blanco <- "#f2f2f2"
 negro <- "#000000"
@@ -28,7 +28,37 @@ fechas <- basename(l) |>
 r <- lapply(l, rast)
 r <- setNames(r, fechas)
 
-# funciones --------------------------------------------------------------
+banda_fct <- c(
+  "B01",
+  "B02",
+  "B03",
+  "B04",
+  "B05",
+  "B06",
+  "B07",
+  "B08",
+  "B8A",
+  "B11",
+  "B12"
+)
+
+d <- read.csv("datos/lab_gis.csv") |>
+  as_tibble() |>
+  mutate(banda = factor(x = banda, levels = banda_fct))
+
+param_etq <- c(
+  "turb" = "Turbidez (NTU)",
+  "secchi" = "Profundidad de disco de Secchi (cm)",
+  "sol_sus" = "Sólidos suspendidos (ppm)",
+  "cond" = "Conductividad (&mu;S/cm)"
+)
+param_nombre <- names(param_etq)
+param_nombre <- setNames(
+  param_nombre,
+  c("Turbidez", "Profundidad de disco", "Sólidos suspendidos", "Conductividad")
+)
+
+# panel mapa -------------------------------------------------------------
 
 # convierte el ráster a escala de 255 para visualizar en color real RGB
 f_escalado <- function(FECHA) {
@@ -197,85 +227,102 @@ rrss_github <- tags$a(
 icon_doi <- HTML('<span class="simple-icons--doi"></span>')
 icon_paper <- HTML('<span class="quill--paper"></span>')
 
-# datos gis/lab -----------------------------------------------------------
-
-banda_fct <- c("B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12")
-
-d <- read.csv("datos/lab_gis.csv") |> 
-  as_tibble() |> 
-  mutate(banda = factor(x = banda, levels = banda_fct))
+# panel figura -----------------------------------------------------------
 
 f_firma_espectral <- function(FECHA, VAR) {
-  e1 <- filter(d, fecha == FECHA) |> 
+  e1 <- filter(d, fecha == FECHA) |>
     distinct(punto, longitud)
-  e2 <- filter(d, fecha == FECHA) |> 
-    select(all_of(c("punto", "banda", VAR))) |> 
-    rename("y" = 3) |> 
+  e2 <- filter(d, fecha == FECHA) |>
+    select(all_of(c("punto", "banda", VAR))) |>
+    rename("y" = 3) |>
     distinct()
-  
+
   g1 <- ggplot(e1, aes(longitud, 1, fill = as.factor(punto))) +
     geom_point_interactive(
       aes(data_id = punto, tooltip = glue("Punto: {punto}")),
-      hover_nearest = TRUE , size = 3, shape = 21, stroke = 1, alpha = 1) +
+      hover_nearest = TRUE,
+      size = 3,
+      shape = 21,
+      stroke = 1,
+      alpha = 1
+    ) +
     annotate(
       geom = "text",
       x = c(-Inf, Inf),
       y = 1,
       label = c("Orilla\nChaco", "Orilla\nCorrientes"),
-      hjust = c(0, 1),
+      hjust = .5,
       vjust = -.5,
       size = 3,
       family = "Fira Code"
     ) +
     scale_x_continuous(expand = expansion(mult = .1, add = 0)) +
     scale_fill_manual(
-      values = colorRampPalette(c("brown", "turquoise"))(length(unique(e1$punto))),
+      values = colorRampPalette(c("brown", "turquoise"))(length(unique(
+        e1$punto
+      ))),
       guide = guide_none()
     ) +
     coord_cartesian(clip = "off", expand = FALSE) +
     theme_void(base_family = "Fira Code")
-    # # theme_sub_axis(text = element_text(color = negro)) +
-    # # theme_sub_axis_y(title = element_markdown(angle = 0, vjust = .5)) +
-    # theme_sub_panel(grid.major = element_line(color = "grey80", linewidth = .2),
-    #                 background = element_blank()) +
-    # theme_sub_plot(background = element_blank())
-  
-  g2 <-  ggplot(e2, aes(banda, y, group = punto, color = as.factor(punto))) +
+
+  g2 <- ggplot(e2, aes(banda, y, group = punto, color = as.factor(punto))) +
     geom_line_interactive(aes(data_id = punto), linewidth = 1, alpha = .5) +
     geom_point_interactive(
       aes(tooltip = round(y, 2), data_id = punto),
-      hover_nearest = TRUE , size = 1.7, shape = 21, fill = "white", stroke = 1,
+      hover_nearest = TRUE,
+      size = 1.7,
+      shape = 21,
+      fill = "white",
+      stroke = 1,
       alpha = .5
     ) +
     labs(x = NULL, y = "R<sub>rs</sub>") +
     scale_color_manual(
-      values = colorRampPalette(c("brown", "turquoise"))(length(unique(e2$punto))),
+      values = colorRampPalette(c("brown", "turquoise"))(length(unique(
+        e2$punto
+      ))),
       guide = guide_none()
     ) +
     theme_few(base_family = "Fira Code") +
     theme_sub_axis(text = element_text(color = negro)) +
+    theme_sub_axis_x(text = element_text(face = "bold")) +
     theme_sub_axis_y(title = element_markdown(angle = 0, vjust = .5)) +
-    theme_sub_panel(grid.major = element_line(color = "grey80", linewidth = .2),
-                    background = element_blank()) +
-    theme_sub_plot(background = element_blank())
-  
-  g3 <- g1/g2 + plot_layout(heights = c(1, 5)) &
-    theme_sub_panel(grid.major = element_line(color = "grey80", linewidth = .2),
-                    background = element_blank()) +
-    theme_sub_plot(background = element_rect(
-      fill = "transparent",
-      color = "transparent"
-    ))
-  
+    theme_sub_panel(
+      grid.major = element_line(color = "grey80", linewidth = .2),
+      background = element_blank()
+    ) +
+    theme_sub_plot(background = element_blank()) +
+    theme_sub_panel(
+      grid.minor.y = element_line(color = "grey80", linewidth = .2)
+    )
+
+  g3 <- g1 /
+    g2 +
+    plot_layout(heights = c(1, 5)) &
+    theme_sub_panel(
+      grid.major = element_line(color = "grey80", linewidth = .2),
+      background = element_blank()
+    ) +
+      theme_sub_plot(
+        background = element_rect(
+          fill = "transparent",
+          color = "transparent"
+        ),
+        margin = margin(r = 10)
+      )
+
   girafe(
     ggobj = g3,
     options = list(
       opts_hover_inv(css = "opacity:.2"),
-      opts_hover(css = girafe_css(
-        css = "",
-        point = "opacity:1;",
-        line = "opacity:1;"
-      )),
+      opts_hover(
+        css = girafe_css(
+          css = "",
+          point = "opacity:1;",
+          line = "opacity:1;"
+        )
+      ),
       opts_tooltip(
         opacity = 1,
         css = glue(
@@ -285,11 +332,109 @@ f_firma_espectral <- function(FECHA, VAR) {
         use_cursor_pos = TRUE,
         offx = 5,
         offy = 5
-      )
+      ),
+      opts_toolbar(saveaspng = FALSE, hidden = c("selection", "zoom", "misc"))
     ),
     bg = "transparent"
   )
 }
-  
-f_firma_espectral(fechas[3], "reflect_sen2cor")
 
+bib <- bibtex::read.bib("extras/bibliografia.bib") |>
+  format(style = "text")
+
+# f_firma_espectral(fechas[3], "reflect_sen2cor")
+
+# panel integrantes ------------------------------------------------------
+
+f_integrante <- function(TITULO, INTEGRANTE, ORCID, EMAIL = NULL) {
+  span(
+    strong(TITULO),
+    em(INTEGRANTE),
+    a(
+      HTML(
+        '<span class="simple-icons--orcid"></span>'
+      ),
+      href = paste0("https://orcid.org/", ORCID),
+      target = "_blank"
+    ),
+    if (!is.null(EMAIL)) {
+      a(
+        HTML('<span class="ic--round-email"></span>'),
+        href = paste0("mailto:", EMAIL),
+        target = "_blank"
+      )
+    } else {
+      NULL
+    }
+  )
+}
+
+# panel tabla ------------------------------------------------------------
+
+f_tabla <- function(PARAM, MAYOR) {
+  tab <- filter(d, param == PARAM) |>
+    tidyr::pivot_wider(
+      names_from = banda,
+      values_from = reflect_acolite,
+      id_cols = c(punto, fecha, longitud, latitud, param, valor)
+    ) |>
+    select(valor, starts_with("B")) |>
+    distinct() |>
+    corrr::correlate() |>
+    select(1, 2) |>
+    tidyr::drop_na() |>
+    rename("Banda" = 1, "r" = 2) |>
+    gt() |>
+    fmt_number(r, decimals = 3, sep_mark = ".", dec_mark = ",") |>
+    tab_style(
+      style = cell_text(weight = "bold"),
+      locations = cells_body(columns = "Banda")
+    ) |>
+    tab_style(
+      style = cell_text(align = "center"),
+      locations = list(cells_body(), cells_column_labels())
+    ) |>
+    tab_header(title = md(param_etq[PARAM])) |>
+    tab_options(table.width = 220, table.background.color = "transparent")
+
+  if (MAYOR) {
+    tab |>
+      tab_style(
+        style = list(
+          cell_fill(color = "grey50"),
+          cell_text(color = "white")
+        ),
+        locations = cells_body(rows = abs(r) == max(abs(r)))
+      )
+  } else {
+    tab
+  }
+}
+
+# UI ---------------------------------------------------------------------
+
+pie <- span(
+  span(
+    "Creado por",
+    a(
+      strong("Víctor Gauto"),
+      href = "mailto:victor.gauto@outlook.com",
+      target = "_blank",
+      .noWS = "before-end"
+    ),
+    "|",
+    a(
+      icon("instagram"),
+      href = "https://www.instagram.com/vhgauto",
+      target = "_blank",
+      .noWS = "before-end"
+    ),
+    a(
+      icon("github"),
+      href = "https://github.com/vhgauto",
+      target = "_blank"
+    )
+  ),
+  style = "padding: .4em; border-top: solid black 1px;
+    background-color: #e5e5e5; text-align: right"
+)
