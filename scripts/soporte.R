@@ -12,7 +12,10 @@ library(patchwork)
 library(ggthemes)
 library(gt)
 library(glue)
+library(shinyWidgets)
+library(brand.yml)
 library(tidyverse)
+library(corrr)
 
 violeta <- "#341648" # MetBrewer: Tam
 verde <- "#007e2e"
@@ -24,7 +27,8 @@ negro <- "#000000"
 l <- list.files("recortes/", full.names = TRUE)
 fechas <- basename(l) |>
   gsub(".tif", "", x = _) |>
-  as.Date()
+  ymd()
+
 r <- lapply(l, rast)
 r <- setNames(r, fechas)
 
@@ -58,45 +62,71 @@ param_nombre <- setNames(
   c("Turbidez", "Profundidad de disco", "Sólidos suspendidos", "Conductividad")
 )
 
+parana <- vect("vectores/sección_paraná.gpkg") |>
+  project(r[[1]])
+
 # panel mapa -------------------------------------------------------------
 
 # convierte el ráster a escala de 255 para visualizar en color real RGB
-f_escalado <- function(FECHA) {
-  w <- r[[as.character(FECHA)]]
+# f_escalado <- function(FECHA) {
+#   w <- r[[as.character(FECHA)]]
 
-  r_rango <- global(w$B04, c("min", "max"))
-  g_rango <- global(w$B03, c("min", "max"))
-  b_rango <- global(w$B02, c("min", "max"))
+#   r_rango <- global(w$B04, c("min", "max"))
+#   g_rango <- global(w$B03, c("min", "max"))
+#   b_rango <- global(w$B02, c("min", "max"))
 
-  w$B04 <- (w$B04 - r_rango$min) * 255 / (r_rango$max - r_rango$min)
-  w$B03 <- (w$B03 - g_rango$min) * 255 / (g_rango$max - g_rango$min)
-  w$B02 <- (w$B02 - b_rango$min) * 255 / (b_rango$max - b_rango$min)
+#   w$B04 <- (w$B04 - r_rango$min) * 255 / (r_rango$max - r_rango$min)
+#   w$B03 <- (w$B03 - g_rango$min) * 255 / (g_rango$max - g_rango$min)
+#   w$B02 <- (w$B02 - b_rango$min) * 255 / (b_rango$max - b_rango$min)
 
-  return(w)
-}
+#   return(w)
+# }
+
+# agua
+lista_cropped_scaled_r <- map(r, ~ .x * 0.0001)
+
+lista_mndwi <- map(
+  lista_cropped_scaled_r,
+  \(X) {
+    y <- (X$B03 - X$B11) / X$B03 + X$B11
+    y[is.infinite(y)] <- NA
+    y <- setNames(y, "mndwi")
+  }
+)
+
+lista_mascara <- map(lista_mndwi, \(X) {
+  y <- thresh(X)
+  y[y == 0] <- NA
+  p <- patches(y)
+  rz <- zonal(cellSize(p, unit = "m"), p, sum, as.raster = TRUE)
+  m <- global(rz, "max", na.rm = TRUE)$max
+  s <- ifel(rz < m, NA, y)
+  return(s)
+})
+
+lista_agua <- map2(lista_cropped_scaled_r, lista_mascara, ~ .x * .y)
+
 
 # extrae los píxeles de agua y aplica modelo de turbidez
 f_turb <- function(FECHA) {
-  y <- r[[as.character(FECHA)]]
-  mndwi <- (y$B03 - y$B11) / (y$B03 + y$B11)
-  mascara <- thresh(mndwi, method = "otsu")
-  mascara[isFALSE(mascara)] <- NA
-  y_mascara <- y * mascara
-  p <- 200 * y_mascara$B05 + 10
+  y <- lista_agua[[as.character(FECHA)]] |>
+    crop(parana, mask = TRUE)
+  p <- exp(7.084084 + 1.361644 * log(y$B05))
   p <- setNames(p, "turb")
-  return(p)
+  q <- global(p, quantile, probs = c(0.02, 0.98), na.rm = TRUE)
+  pp <- clamp(p, q$X2., q$X98., values = FALSE)
+  return(pp)
 }
 
 # extrae los píxeles de agua y aplica modelo de profundidad de disco
 f_secchi <- function(FECHA) {
-  y <- r[[as.character(FECHA)]]
-  mndwi <- (y$B03 - y$B11) / (y$B03 + y$B11)
-  mascara <- thresh(mndwi, method = "otsu")
-  mascara[isFALSE(mascara)] <- NA
-  y_mascara <- y * mascara
-  p <- 10 * y_mascara$B05 + 5
-  p <- setNames(p, "secchi")
-  return(p)
+  y <- lista_agua[[as.character(FECHA)]] |>
+    crop(parana, mask = TRUE)
+  p <- exp(7.084084 + 1.361644 * log(y$B05))
+  p <- setNames(p, "turb")
+  q <- global(p, quantile, probs = c(0.02, 0.98), na.rm = TRUE)
+  pp <- clamp(p, q$X2., q$X98., values = FALSE)
+  return(pp)
 }
 
 # mapa leaflet de ráster en color real RGB
@@ -118,7 +148,7 @@ leaflet_rgb <- function(FECHA) {
       r = 4,
       g = 3,
       b = 2,
-      quantiles = c(.2, .98),
+      quantiles = c(.02, .98),
       na.color = NA,
       group = "RGB"
     ) |>
@@ -147,12 +177,12 @@ leaflet_tipo <- function(FECHA, TIPO) {
   if (TIPO == "secchi") {
     p <- f_secchi(FECHA)
     pal_nombre <- "YlOrBr"
-    grupo <- "Profuncidad de disco (cm)"
-    titulo <- "Profuncidad de<br>disco (cm)"
+    grupo <- "Profundidad de disco (cm)"
+    titulo <- "Profundidad de<br>disco (cm)"
   }
 
   g <- global(p, c("min", "max"), na.rm = TRUE)
-  d <- .1
+  d <- 0
   p[p < (1 + d) * g$min] <- NA
   p[p > (1 - d) * g$max] <- NA
   v <- na.omit(values(p))
@@ -339,11 +369,6 @@ f_firma_espectral <- function(FECHA, VAR) {
   )
 }
 
-bib <- bibtex::read.bib("extras/bibliografia.bib") |>
-  format(style = "text")
-
-# f_firma_espectral(fechas[3], "reflect_sen2cor")
-
 # panel integrantes ------------------------------------------------------
 
 f_integrante <- function(TITULO, INTEGRANTE, ORCID, EMAIL = NULL) {
@@ -438,3 +463,8 @@ pie <- span(
   style = "padding: .4em; border-top: solid black 1px;
     background-color: #e5e5e5; text-align: right"
 )
+
+# bibliografía -----------------------------------------------------------
+
+bib <- bibtex::read.bib("extras/bibliografia.bib") |>
+  format(style = "text")
