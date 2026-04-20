@@ -1,0 +1,25 @@
+color:
+  palette:
+    verde: "#007e2e"
+    violeta: "#341648"
+    blanco: "#f2f2f2"
+    negro: "#000000"
+  primary: violeta
+  secondary: verde
+  foreground: negro
+  background: blanco
+  info: verde
+
+typography:
+  fonts:
+    - family: Nunito
+      source: google
+    - family: Bebas Neue
+      source: google
+    - family: Fira Code
+      source: google
+  base: Nunito
+  headings:
+    family: Bebas Neue
+    color: violeta
+  monospace: Fira Code
