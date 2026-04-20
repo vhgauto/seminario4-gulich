@@ -2,6 +2,11 @@
 .Rhistory
 .Rapp.history
 .vscode
+recortes*
+modelos
+datos
+vectores*
+.Rbuild*
 
 # Session Data files
 .RData
