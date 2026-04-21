@@ -8,10 +8,10 @@ panel_tabla <- nav_panel(
         h3("Parámetros"),
         param_nombre
       ),
-      h3(HTML("Seleccionar mejor <em>r</em>")),
+      hr(),
       shinyWidgets::prettySwitch(
         "corr_mejor",
-        "Mostrar mejor correlación",
+        "Mejor correlación",
         fill = TRUE,
         inline = TRUE,
         bigger = TRUE,
@@ -19,7 +19,12 @@ panel_tabla <- nav_panel(
       )
     ),
     card(
-      card_header(h1("Tabla")),
+      card_header(
+        span(
+          "Correlaciones lineales entre parámetros fisicoquímicos y bandas espectrales",
+          class = "card-titulo"
+        )
+      ),
       uiOutput("tabla_corr"),
       card_footer(HTML("<em>r</em>: Coeficiente de correlación de Pearson"))
     )
