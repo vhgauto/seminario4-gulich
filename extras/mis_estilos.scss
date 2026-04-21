@@ -15,6 +15,17 @@ $negro: #000000;
 
 /*-- scss:rules --*/
 
+.card-titulo {
+  color: $blanco;
+  font-size: 2em;
+  font-weight: bold;
+  font-family: Nunito;
+}
+
+.bslib-card .card-header {
+  background-color: $violeta;
+}
+
 .accordion {
     --bs-accordion-btn-color: $violeta;
 }
