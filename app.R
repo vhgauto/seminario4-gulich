@@ -32,8 +32,7 @@ ui <- page_navbar(
   nav_item(rrss_github),
   footer = pie,
   theme = bs_theme(brand = "_brand.yml") |>
-    bs_add_rules(sass::sass_file("extras/mis_estilos.scss")),
-  ff
+    bs_add_rules(sass::sass_file("extras/mis_estilos.scss"))
 )
 
 server <- function(input, output) {
