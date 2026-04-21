@@ -21,6 +21,7 @@ violeta <- "#341648" # MetBrewer: Tam
 verde <- "#007e2e"
 blanco <- "#f2f2f2"
 negro <- "#000000"
+gris <- "grey80"
 
 # datos ------------------------------------------------------------------
 
@@ -49,6 +50,8 @@ banda_fct <- c(
 d <- read.csv("datos/lab_gis.csv") |>
   as_tibble() |>
   mutate(banda = factor(x = banda, levels = banda_fct))
+
+fechas_firma_espectral <- unique(d$fecha)
 
 param_etq <- c(
   "turb" = "Turbidez (NTU)",
@@ -105,7 +108,6 @@ lista_mascara <- map(lista_mndwi, \(X) {
 })
 
 lista_agua <- map2(lista_cropped_scaled_r, lista_mascara, ~ .x * .y)
-
 
 # extrae los píxeles de agua y aplica modelo de turbidez
 f_turb <- function(FECHA) {
@@ -331,7 +333,7 @@ f_firma_espectral <- function(FECHA, VAR) {
     g2 +
     plot_layout(heights = c(1, 5)) &
     theme_sub_panel(
-      grid.major = element_line(color = "grey80", linewidth = .2),
+      grid.major = element_line(color = gris, linewidth = .2),
       background = element_blank()
     ) +
       theme_sub_plot(
@@ -405,7 +407,7 @@ f_tabla <- function(PARAM, MAYOR) {
     ) |>
     select(valor, starts_with("B")) |>
     distinct() |>
-    corrr::correlate() |>
+    corrr::correlate(use = "pairwise.complete.obs", quiet = TRUE) |>
     select(1, 2) |>
     tidyr::drop_na() |>
     rename("Banda" = 1, "r" = 2) |>
@@ -426,8 +428,8 @@ f_tabla <- function(PARAM, MAYOR) {
     tab |>
       tab_style(
         style = list(
-          cell_fill(color = "grey50"),
-          cell_text(color = "white")
+          cell_fill(color = violeta),
+          cell_text(color = "white", weight = "bold")
         ),
         locations = cells_body(rows = abs(r) == max(abs(r)))
       )
@@ -468,3 +470,117 @@ pie <- span(
 
 bib <- bibtex::read.bib("extras/bibliografia.bib") |>
   format(style = "text")
+
+
+d_altura <- vroom::vroom("datos/altura.csv", show_col_types = FALSE) |>
+  filter(year(fecha) >= 2000)
+m_altura <- mean(d_altura$altura)
+fecha_altura_min <- min(d_altura$fecha)
+fecha_altura_max <- max(d_altura$fecha)
+
+estilo_serie_temporal <- function(g) {
+  g +
+    scale_x_date(
+      labels = \(X) {
+        scales::label_date_short(
+          format = c("%Y", "%b", "%d", "%H:%M"),
+          leading = ""
+        )(X) |>
+          toupper()
+      },
+      expand = expansion(add = 0, mult = .01),
+      minor_breaks = scales::breaks_width("1 month")
+    ) +
+    scale_y_continuous(
+      labels = scales::label_number(decimal.mark = ",", big.mark = "."),
+      expand = expansion(add = 0, mult = c(0, .01)),
+      breaks = scales::breaks_width(1),
+      minor_breaks = scales::breaks_width(.25)
+    ) +
+    coord_cartesian(ylim = c(0, NA)) +
+    labs(y = "Altura (m)", x = NULL) +
+    theme_few(base_family = "Fira Code") +
+    theme(aspect.ratio = .7) +
+    theme_sub_axis(
+      text = element_text(color = negro, face = "bold"),
+      title = element_text(face = "bold")
+    ) +
+    theme_sub_panel(
+      grid.major = element_line(color = gris, linewidth = .3),
+      grid.minor = element_line(color = gris, linewidth = .1),
+      background = element_blank()
+    ) +
+    theme_sub_plot(background = element_blank(), margin = margin())
+}
+
+f_serie_temporal_altura <- function(
+  FECHA_MIN,
+  FECHA_MAX,
+  ma = FALSE,
+  n_ma = 20
+) {
+  d_serie <- filter(d_altura, between(fecha, FECHA_MIN, FECHA_MAX)) |>
+    mutate(
+      label = paste0(
+        format(round(altura, 2), big.mark = ".", decimal.mark = ","),
+        " m\n",
+        fecha
+      )
+    )
+  if (ma) {
+    g_ma <- d_serie |>
+      ggplot(aes(fecha, altura)) +
+      geom_hline(
+        yintercept = m_altura,
+        color = verde,
+        linetype = 2,
+        linewidth = 1
+      ) +
+      tidyquant::geom_ma(n = n_ma, linetype = 1, linewidth = 1, color = verde)
+    g <- estilo_serie_temporal(g_ma)
+  } else {
+    g_serie <- d_serie |>
+      ggplot(aes(fecha, altura)) +
+      geom_hline(
+        yintercept = m_altura,
+        color = verde,
+        linetype = 2,
+        linewidth = 1
+      ) +
+      geom_line(color = violeta, linewidth = .5) +
+      geom_point_interactive(
+        aes(tooltip = label, data_id = fecha),
+        shape = 21,
+        size = 1,
+        fill = verde,
+        color = violeta,
+        stroke = .5
+      )
+    g <- estilo_serie_temporal(g_serie)
+  }
+
+  girafe(
+    ggobj = g,
+    options = list(
+      opts_hover_inv(css = "opacity:.7"),
+      opts_hover(css = girafe_css(css = "fill:red;")),
+      opts_tooltip(
+        opacity = 1,
+        css = glue(
+          "color:{negro};padding:5px;font-family: Fira Code;",
+          "border-style:solid;border-color:{violeta};background:{blanco}"
+        ),
+        use_cursor_pos = TRUE,
+        offx = 5,
+        offy = 5
+      ),
+      opts_toolbar(saveaspng = FALSE, hidden = c("selection", "zoom", "misc"))
+    ),
+    bg = "transparent"
+  )
+}
+
+f_descarga_serie_temporal <- function(FECHA_MIN, FECHA_MAX, FILE) {
+  filter(d_altura, between(fecha, FECHA_MIN, FECHA_MAX)) |>
+    vroom::vroom_write(FILE)
+}
