@@ -36,7 +36,12 @@ panel_mapa <- nav_panel(
       )
     ),
     card(
-      card_header(h1("Mapa")),
+      card_header(
+        span(
+          "Visualización en color real y distribución espacial de turbidez y profundidad de disco",
+          class = "card-titulo"
+        )
+      ),
       leafletOutput("mapa_interactivo")
     )
   )
