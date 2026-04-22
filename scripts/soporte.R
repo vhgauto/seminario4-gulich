@@ -14,8 +14,9 @@ library(gt)
 library(glue)
 library(shinyWidgets)
 library(brand.yml)
-library(tidyverse)
 library(corrr)
+library(tidymodels)
+library(tidyverse)
 
 violeta <- "#341648" # MetBrewer: Tam
 verde <- "#007e2e"
@@ -26,6 +27,8 @@ gris <- "grey80"
 # datos ------------------------------------------------------------------
 
 l <- list.files("recortes/", full.names = TRUE)
+l <- l[str_detect(l, "2026")]
+
 fechas <- basename(l) |>
   gsub(".tif", "", x = _) |>
   ymd()
@@ -110,39 +113,39 @@ lista_mascara <- map(lista_mndwi, \(X) {
 lista_agua <- map2(lista_cropped_scaled_r, lista_mascara, ~ .x * .y)
 
 # extrae los píxeles de agua y aplica modelo de turbidez
-f_turb <- function(FECHA) {
-  y <- lista_agua[[as.character(FECHA)]] |>
-    crop(parana, mask = TRUE)
-  p <- exp(7.084084 + 1.361644 * log(y$B05))
-  p <- setNames(p, "turb")
-  q <- global(p, quantile, probs = c(0.02, 0.98), na.rm = TRUE)
-  pp <- clamp(p, q$X2., q$X98., values = FALSE)
-  return(pp)
-}
+# f_turb <- function(FECHA) {
+#   y <- lista_agua[[as.character(FECHA)]] |>
+#     crop(parana, mask = TRUE)
+#   p <- exp(7.084084 + 1.361644 * log(y$B05))
+#   p <- setNames(p, "turb")
+#   q <- global(p, quantile, probs = c(0.02, 0.98), na.rm = TRUE)
+#   pp <- clamp(p, q$X2., q$X98., values = FALSE)
+#   return(pp)
+# }
 
 # extrae los píxeles de agua y aplica modelo de profundidad de disco
-f_secchi <- function(FECHA) {
-  y <- lista_agua[[as.character(FECHA)]] |>
-    crop(parana, mask = TRUE)
-  p <- exp(7.084084 + 1.361644 * log(y$B05))
-  p <- setNames(p, "turb")
-  q <- global(p, quantile, probs = c(0.02, 0.98), na.rm = TRUE)
-  pp <- clamp(p, q$X2., q$X98., values = FALSE)
-  return(pp)
-}
+# f_secchi <- function(FECHA) {
+#   y <- lista_agua[[as.character(FECHA)]] |>
+#     crop(parana, mask = TRUE)
+#   p <- exp(7.084084 + 1.361644 * log(y$B05))
+#   p <- setNames(p, "turb")
+#   q <- global(p, quantile, probs = c(0.02, 0.98), na.rm = TRUE)
+#   pp <- clamp(p, q$X2., q$X98., values = FALSE)
+#   return(pp)
+# }
 
 # mapa leaflet de ráster en color real RGB
 leaflet_rgb <- function(FECHA) {
   leaflet() |>
-    addTiles(group = "OSM (default)") |>
+    addTiles(group = "OSM (base)") |>
     addProviderTiles(
       providers$CartoDB.Positron,
-      group = "Positron (minimal)",
+      group = "Positron (mínimo)",
       options = providerTileOptions(noWrap = TRUE)
     ) |>
     addProviderTiles(
       providers$Esri.WorldImagery,
-      group = "World Imagery (satellite)",
+      group = "World Imagery (satelital)",
       options = providerTileOptions(noWrap = TRUE)
     ) |>
     addRasterRGB(
@@ -156,9 +159,9 @@ leaflet_rgb <- function(FECHA) {
     ) |>
     addLayersControl(
       baseGroups = c(
-        "OSM (default)",
-        "Positron (minimal)",
-        "World Imagery (satellite)"
+        "OSM (base)",
+        "Positron (mínimo)",
+        "World Imagery (satelital)"
       ),
       overlayGroups = c("RGB"),
       options = layersControlOptions(collapsed = TRUE)
@@ -168,31 +171,43 @@ leaflet_rgb <- function(FECHA) {
 }
 
 # mapa leaflet de ráster de turbidez
-leaflet_tipo <- function(FECHA, TIPO) {
+leaflet_tipo <- function(FECHA, TIPO, PALETA) {
   if (TIPO == "turb") {
-    p <- f_turb(FECHA)
-    pal_nombre <- "YlGnBu"
+    p <- f_turb2(FECHA)
+    # pal_nombre <- "RdPu"
+    pal_nombre <- PALETA
     grupo <- "Turbidez (NTU)"
     titulo <- "Turbidez<br>(NTU)"
+    invertido <- FALSE
   }
 
   if (TIPO == "secchi") {
-    p <- f_secchi(FECHA)
-    pal_nombre <- "YlOrBr"
+    p <- f_secchi2(FECHA)
+    # pal_nombre <- "GnBu"
+    pal_nombre <- PALETA
     grupo <- "Profundidad de disco (cm)"
     titulo <- "Profundidad de<br>disco (cm)"
+    invertido <- TRUE
   }
 
-  g <- global(p, c("min", "max"), na.rm = TRUE)
-  d <- 0
-  p[p < (1 + d) * g$min] <- NA
-  p[p > (1 - d) * g$max] <- NA
+  # g <- global(p, c("min", "max"), na.rm = TRUE)
+  # d <- 0
+  # p[p < (1 + d) * g$min] <- NA
+  # p[p > (1 - d) * g$max] <- NA
   v <- na.omit(values(p))
+  # v <- values(p)
+
+  # coltab(p) <- data.frame(
+  #   values = sort(v),
+  #   col = colorRampPalette(RColorBrewer::brewer.pal(9, "GnBu"))(length(v))
+  # )
 
   pal <- colorNumeric(
     palette = pal_nombre,
-    domain = v,
-    na.color = NA
+    # domain = v,
+    domain = c(min(v) - 1, max(v) + 1),
+    na.color = NA,
+    reverse = invertido
   )
 
   leaflet() |>
@@ -584,3 +599,43 @@ f_descarga_serie_temporal <- function(FECHA_MIN, FECHA_MAX, FILE) {
   filter(d_altura, between(fecha, FECHA_MIN, FECHA_MAX)) |>
     vroom::vroom_write(FILE)
 }
+
+f_descarga_raster <- function(FECHA, TIPO, FILE) {
+  y <- r[[as.character(FECHA)]]
+  if (TIPO == "Turbidez") {
+    writeRaster(f_turb(FECHA), FILE)
+  } else if (TIPO == "Profundidad de disco") {
+    writeRaster(f_secchi(FECHA), FILE)
+  } else {
+    writeRaster(y, FILE)
+  }
+}
+
+rf_secchi <- get(load("modelos/rf_secchi.Rdata"))
+rf_turb <- get(load("modelos/rf_turb.Rdata"))
+
+f_secchi2 <- function(FECHA) {
+  y <- lista_agua[[as.character(FECHA)]] |>
+    crop(parana, mask = TRUE)
+  p <- terra::predict(y, workflowsets::extract_workflow(rf_secchi))
+  p <- setNames(p, "secchi")
+  p2 <- p * lista_mascara[[as.character(FECHA)]]
+  q <- global(p2, quantile, probs = c(0.00, 0.99), na.rm = TRUE)
+  p3 <- clamp(p2, q$X0., q$X99., values = FALSE)
+  return(p3)
+}
+
+f_turb2 <- function(FECHA) {
+  y <- lista_agua[[as.character(FECHA)]] |>
+    crop(parana, mask = TRUE)
+  p <- terra::predict(y, workflowsets::extract_workflow(rf_turb))
+  p <- setNames(p, "turb")
+  p2 <- p * lista_mascara[[as.character(FECHA)]]
+  q <- global(p2, quantile, probs = c(0.02, 0.98), na.rm = TRUE)
+  p3 <- clamp(p2, q$X2., q$X98., values = FALSE)
+  return(p3)
+}
+
+paletas <- RColorBrewer::brewer.pal.info |>
+  filter(category == "seq") |>
+  rownames()
