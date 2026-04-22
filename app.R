@@ -8,7 +8,6 @@ source("scripts/panel_integrantes.R")
 
 # TODO: modelo secchi
 # TODO: serie temporal caudal
-# TODO: botones de descarga para tif
 
 ui <- page_navbar(
   tags$head(tags$link(rel = "shortcut icon", href = "favicon.png")),
@@ -37,23 +36,81 @@ ui <- page_navbar(
 
 server <- function(input, output) {
   # MAPA
-  observeEvent(input$tipo, {
+  # paleta de colores para TURB y SECCHI
+  observeEvent(
+    input$tipo,
+    {
+      tipo <- reactive(input$tipo)
+      if (tipo() != "RGB") {
+        output$gear_paleta <- renderUI({
+          popover(
+            bsicons::bs_icon("gear-fill", color = "white"),
+            selectInput(
+              "paletas_mapa",
+              label = "Seleccionar paleta de colores",
+              choices = paletas,
+              selected = input$paletas_mapa
+            ),
+            title = "Estilo del mapa"
+          )
+        })
+      } else {
+        output$gear_paleta <- renderUI({
+          NULL
+        })
+      }
+    }
+  )
+
+  # mapa interactivo
+  observeEvent(list(input$tipo, input$paletas_mapa), {
     tipo <- reactive(input$tipo)
+    paletas_mapa <- reactive(input$paletas_mapa)
+
     if (tipo() == "RGB") {
       output$mapa_interactivo <- renderLeaflet({
         leaflet_rgb(input$fecha)
       })
     }
-    if (tipo() == "Turbidez") {
+
+    if (tipo() == "Turbidez" && !is.null(paletas_mapa())) {
+      # paletas_mapa <- reactive(input$paletas_mapa)
       output$mapa_interactivo <- renderLeaflet({
-        leaflet_tipo(FECHA = input$fecha, TIPO = "turb")
+        leaflet_tipo(
+          FECHA = input$fecha,
+          TIPO = "turb",
+          PALETA = paletas_mapa()
+        )
       })
     }
-    if (tipo() == "Profundidad de disco") {
+
+    if (tipo() == "Profundidad de disco" && !is.null(paletas_mapa())) {
+      # paletas_mapa <- reactive(input$paletas_mapa)
       output$mapa_interactivo <- renderLeaflet({
-        leaflet_tipo(FECHA = input$fecha, TIPO = "secchi")
+        leaflet_tipo(
+          FECHA = input$fecha,
+          TIPO = "secchi",
+          PALETA = paletas_mapa()
+        )
       })
     }
+  })
+
+  # descarga
+  observeEvent(list(input$fecha, input$tipo), {
+    output$descarga_raster <- downloadHandler(
+      filename = function() {
+        paste0(
+          input$fecha,
+          "_",
+          input$tipo,
+          ".tif"
+        )
+      },
+      content = function(file) {
+        f_descarga_raster(FECHA = input$fecha, TIPO = input$tipo, FILE = file)
+      }
+    )
   })
 
   # FIRMA ESPECTRAL
