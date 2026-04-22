@@ -6,8 +6,8 @@ source("scripts/panel_serie_temporal.R")
 source("scripts/panel_publicaciones.R")
 source("scripts/panel_integrantes.R")
 
-# TODO: modelo secchi
-# TODO: serie temporal caudal
+# TODO: márgenes alrededor de firma espectral/serie temporal
+# TODO: mini render quarto ?
 
 ui <- page_navbar(
   tags$head(tags$link(rel = "shortcut icon", href = "favicon.png")),
@@ -74,7 +74,6 @@ server <- function(input, output) {
     }
 
     if (tipo() == "Turbidez" && !is.null(paletas_mapa())) {
-      # paletas_mapa <- reactive(input$paletas_mapa)
       output$mapa_interactivo <- renderLeaflet({
         leaflet_tipo(
           FECHA = input$fecha,
@@ -85,7 +84,6 @@ server <- function(input, output) {
     }
 
     if (tipo() == "Profundidad de disco" && !is.null(paletas_mapa())) {
-      # paletas_mapa <- reactive(input$paletas_mapa)
       output$mapa_interactivo <- renderLeaflet({
         leaflet_tipo(
           FECHA = input$fecha,
