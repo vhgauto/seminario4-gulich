@@ -33,14 +33,18 @@ panel_mapa <- nav_panel(
           HTML('<i class="bi bi-info-circle-fill"></i>.'),
           includeMarkdown(bib[1])
         )
-      )
+      ),
+      hr(),
+      downloadButton("descarga_raster", "Descargar ráster")
     ),
     card(
       card_header(
         span(
           "Visualización en color real y distribución espacial de turbidez y profundidad de disco",
           class = "card-titulo"
-        )
+        ),
+        nav_spacer(),
+        uiOutput("gear_paleta")
       ),
       leafletOutput("mapa_interactivo")
     )
