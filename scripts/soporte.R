@@ -97,28 +97,6 @@ lista_mascara <- map(lista_mndwi, \(X) {
 
 lista_agua <- map2(lista_cropped_scaled_r, lista_mascara, ~ .x * .y)
 
-# extrae los píxeles de agua y aplica modelo de turbidez
-# f_turb <- function(FECHA) {
-#   y <- lista_agua[[as.character(FECHA)]] |>
-#     crop(parana, mask = TRUE)
-#   p <- exp(7.084084 + 1.361644 * log(y$B05))
-#   p <- setNames(p, "turb")
-#   q <- global(p, quantile, probs = c(0.02, 0.98), na.rm = TRUE)
-#   pp <- clamp(p, q$X2., q$X98., values = FALSE)
-#   return(pp)
-# }
-
-# extrae los píxeles de agua y aplica modelo de profundidad de disco
-# f_secchi <- function(FECHA) {
-#   y <- lista_agua[[as.character(FECHA)]] |>
-#     crop(parana, mask = TRUE)
-#   p <- exp(7.084084 + 1.361644 * log(y$B05))
-#   p <- setNames(p, "turb")
-#   q <- global(p, quantile, probs = c(0.02, 0.98), na.rm = TRUE)
-#   pp <- clamp(p, q$X2., q$X98., values = FALSE)
-#   return(pp)
-# }
-
 # mapa leaflet de ráster en color real RGB
 leaflet_rgb <- function(FECHA) {
   leaflet() |>
@@ -613,11 +591,3 @@ f_turb2 <- function(FECHA) {
 paletas <- RColorBrewer::brewer.pal.info |>
   filter(category == "seq") |>
   rownames()
-
-# library(formatBibtex)
-# example_bib <- "extras/bibliografia.bib"
-bib2 <- bibtex::read.bib("extras/bibliografia.bib")
-# formatBibtex::format_bibtex_entry(bib)
-# output_file <- "extras/TEST.bib"
-# format_bibtex_file(example_bib, output_file = output_file)
-# print(readLines(output_file), quote = FALSE)
