@@ -73,21 +73,6 @@ parana <- vect("vectores/sección_paraná.gpkg") |>
 
 # panel mapa -------------------------------------------------------------
 
-# convierte el ráster a escala de 255 para visualizar en color real RGB
-# f_escalado <- function(FECHA) {
-#   w <- r[[as.character(FECHA)]]
-
-#   r_rango <- global(w$B04, c("min", "max"))
-#   g_rango <- global(w$B03, c("min", "max"))
-#   b_rango <- global(w$B02, c("min", "max"))
-
-#   w$B04 <- (w$B04 - r_rango$min) * 255 / (r_rango$max - r_rango$min)
-#   w$B03 <- (w$B03 - g_rango$min) * 255 / (g_rango$max - g_rango$min)
-#   w$B02 <- (w$B02 - b_rango$min) * 255 / (b_rango$max - b_rango$min)
-
-#   return(w)
-# }
-
 # agua
 lista_cropped_scaled_r <- map(r, ~ .x * 0.0001)
 
@@ -174,7 +159,6 @@ leaflet_rgb <- function(FECHA) {
 leaflet_tipo <- function(FECHA, TIPO, PALETA) {
   if (TIPO == "turb") {
     p <- f_turb2(FECHA)
-    # pal_nombre <- "RdPu"
     pal_nombre <- PALETA
     grupo <- "Turbidez (NTU)"
     titulo <- "Turbidez<br>(NTU)"
@@ -183,24 +167,13 @@ leaflet_tipo <- function(FECHA, TIPO, PALETA) {
 
   if (TIPO == "secchi") {
     p <- f_secchi2(FECHA)
-    # pal_nombre <- "GnBu"
     pal_nombre <- PALETA
     grupo <- "Profundidad de disco (cm)"
     titulo <- "Profundidad de<br>disco (cm)"
     invertido <- TRUE
   }
 
-  # g <- global(p, c("min", "max"), na.rm = TRUE)
-  # d <- 0
-  # p[p < (1 + d) * g$min] <- NA
-  # p[p > (1 - d) * g$max] <- NA
   v <- na.omit(values(p))
-  # v <- values(p)
-
-  # coltab(p) <- data.frame(
-  #   values = sort(v),
-  #   col = colorRampPalette(RColorBrewer::brewer.pal(9, "GnBu"))(length(v))
-  # )
 
   pal <- colorNumeric(
     palette = pal_nombre,
@@ -273,6 +246,8 @@ rrss_github <- tags$a(
 
 icon_doi <- HTML('<span class="simple-icons--doi"></span>')
 icon_paper <- HTML('<span class="quill--paper"></span>')
+icon_autor <- HTML('<span class="material-symbols--person"></span>')
+icon_año <- HTML('<span class="mdi--calendar"></span>')
 
 # panel figura -----------------------------------------------------------
 
@@ -486,7 +461,6 @@ pie <- span(
 bib <- bibtex::read.bib("extras/bibliografia.bib") |>
   format(style = "text")
 
-
 d_altura <- vroom::vroom("datos/altura.csv", show_col_types = FALSE) |>
   filter(year(fecha) >= 2000)
 m_altura <- mean(d_altura$altura)
@@ -639,3 +613,11 @@ f_turb2 <- function(FECHA) {
 paletas <- RColorBrewer::brewer.pal.info |>
   filter(category == "seq") |>
   rownames()
+
+# library(formatBibtex)
+# example_bib <- "extras/bibliografia.bib"
+bib2 <- bibtex::read.bib("extras/bibliografia.bib")
+# formatBibtex::format_bibtex_entry(bib)
+# output_file <- "extras/TEST.bib"
+# format_bibtex_file(example_bib, output_file = output_file)
+# print(readLines(output_file), quote = FALSE)
