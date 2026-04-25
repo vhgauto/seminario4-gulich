@@ -12,13 +12,13 @@ color:
 
 typography:
   fonts:
-    - family: Nunito
+    - family: Lato
       source: google
     - family: Bebas Neue
       source: google
     - family: Fira Code
       source: google
-  base: Nunito
+  base: Lato
   headings:
     family: Bebas Neue
     color: violeta
