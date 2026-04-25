@@ -32,6 +32,7 @@ panel_serie_temporal <- nav_panel(
         fill = TRUE,
         inline = TRUE,
         bigger = TRUE,
+        value = FALSE,
         status = "info"
       ),
       uiOutput("slider_ma"),
