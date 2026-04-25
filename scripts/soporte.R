@@ -591,3 +591,18 @@ f_turb2 <- function(FECHA) {
 paletas <- RColorBrewer::brewer.pal.info |>
   filter(category == "seq") |>
   rownames()
+
+# quarto -----------------------------------------------------------------
+
+f_quarto <- function(FILE, PARAMS) {
+  quarto::quarto_render(
+    input = "p.qmd",
+    execute_params = PARAMS
+  )
+  return(FILE)
+}
+
+quarto_fecha_firma <- unique(read.csv("datos/lab_gis.csv")$fecha)
+quarto_fecha_mapa <- gsub(".tif", "", list.files("recortes/")) |>
+  ymd()
+quarto_fecha_mapa <- quarto_fecha_mapa[str_which(quarto_fecha_mapa, "2026")]
