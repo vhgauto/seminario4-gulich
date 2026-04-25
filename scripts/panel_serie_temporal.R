@@ -1,5 +1,10 @@
 panel_serie_temporal <- nav_panel(
-  title = h5("Serie temporal"),
+  title = h5(
+    span(
+      HTML('<span class="grommet-icons--time"></span>'),
+      "Serie temporal"
+    )
+  ),
   layout_sidebar(
     sidebar = sidebar(
       title = h1("Rango temporal"),

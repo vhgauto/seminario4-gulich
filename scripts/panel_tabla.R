@@ -1,5 +1,10 @@
 panel_tabla <- nav_panel(
-  title = h5("Correlaciones"),
+  title = h5(
+    span(
+      HTML('<span class="carbon--qq-plot"></span>'),
+      "Correlaciones"
+    )
+  ),
   layout_sidebar(
     sidebar = sidebar(
       title = h1("Opciones"),
