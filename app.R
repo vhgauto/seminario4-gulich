@@ -8,7 +8,6 @@ source("scripts/panel_publicaciones.R")
 source("scripts/panel_integrantes.R")
 
 # TODO: márgenes alrededor de firma espectral/serie temporal
-# TODO: mantener eje vertical constante en firma espectral
 
 ui <- page_navbar(
   tags$head(tags$link(rel = "shortcut icon", href = "favicon.png")),
@@ -36,7 +35,7 @@ ui <- page_navbar(
     bs_add_rules(sass::sass_file("extras/mis_estilos.scss"))
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   # QUARTO
   observeEvent(
     list(
@@ -196,8 +195,14 @@ server <- function(input, output) {
   condición_fechas <- reactive({
     input$fecha_altura_min > input$fecha_altura_max
   })
+  condición_período_fechas <- reactive({
+    as.numeric(input$fecha_altura_max - input$fecha_altura_min) > 0 &
+    as.numeric(input$fecha_altura_max - input$fecha_altura_min) < 60
+  })
   observeEvent(
-    condición_fechas(),
+    list(input$fecha_altura_min,
+    input$fecha_altura_max),
+    # condición_fechas(),
     {
       if (condición_fechas()) {
         showModal(
@@ -218,9 +223,41 @@ server <- function(input, output) {
     }
   )
 
-  observeEvent(input$serie_temporal_ma, {
+  observeEvent(list(
+    input$serie_temporal_ma,
+    input$fecha_altura_min,
+    input$fecha_altura_max
+  ), {
+    # boton_ma <- reactiveVal(FALSE)
     serie_temporal_ma <- reactive(input$serie_temporal_ma)
-    if (serie_temporal_ma()) {
+    condición_período_fechas <- reactive({
+      as.numeric(input$fecha_altura_max - input$fecha_altura_min) > 0 &
+        as.numeric(input$fecha_altura_max - input$fecha_altura_min) < 60
+    })
+    if (serie_temporal_ma() & condición_período_fechas()) {
+      showModal(
+        modalDialog(
+          title = "Rango de fechas debe ser superior a 60 días.",
+          easyClose = TRUE,
+          "La fecha.",
+          footer = modalButton("Cerrar")
+        )
+      )
+      # serie_temporal_ma(FALSE)
+      output$slider_ma <- renderUI({
+        NULL
+      })
+      output$serie_temporal_altura <- renderGirafe({
+        f_serie_temporal_altura(
+          FECHA_MIN = fecha_altura_min,
+          FECHA_MAX = fecha_altura_max
+        )
+      })
+      updatePrettyToggle(
+        session = session, inputId = "serie_temporal_ma", value = FALSE)
+    }
+    
+    if (serie_temporal_ma() & !condición_período_fechas()) {
       output$slider_ma <- renderUI({
         sliderInput(
           "ma",
@@ -246,8 +283,9 @@ server <- function(input, output) {
       input$ma
     ),
     {
+      período_válido <- as.numeric(input$fecha_altura_max - input$fecha_altura_min) >= 60
       output$serie_temporal_altura <- renderGirafe({
-        if (input$serie_temporal_ma && !is.null(input$ma)) {
+        if (input$serie_temporal_ma && !is.null(input$ma) && período_válido) {
           f_serie_temporal_altura(
             FECHA_MIN = input$fecha_altura_min,
             FECHA_MAX = input$fecha_altura_max,
