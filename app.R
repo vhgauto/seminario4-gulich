@@ -9,7 +9,6 @@ source("scripts/panel_integrantes.R")
 
 # TODO: márgenes alrededor de firma espectral/serie temporal
 # TODO: mantener eje vertical constante en firma espectral
-# TODO: input_task_button()
 
 ui <- page_navbar(
   tags$head(tags$link(rel = "shortcut icon", href = "favicon.png")),
@@ -39,24 +38,45 @@ ui <- page_navbar(
 
 server <- function(input, output) {
   # QUARTO
-
   observeEvent(
     list(
       input$quarto_fecha_firma,
       input$quarto_fecha_mapa,
-      input$quarto_fecha_tabla
+      input$quarto_fecha_tabla,
+      input$render_quarto
     ),
     {
       params_recepcion <- list(
         firma = input$quarto_fecha_firma,
         mapa = input$quarto_fecha_mapa
       )
-      output$render_quarto <- downloadHandler(
+
+      terminado <- reactiveVal(FALSE)
+
+      render_quarto <- reactive(input$render_quarto)
+
+      if (render_quarto()) {
+        output$boton_descarga_reporte <- renderUI({
+          NULL
+        })
+        f_quarto(FILE = file, PARAMS = params_recepcion)
+        terminado(TRUE)
+      }
+
+      output$boton_descarga_reporte <- renderUI({
+        req(terminado())
+        downloadButton(
+          "descarga_pdf",
+          "Descargar PDF",
+          style = "height: 200px"
+        )
+      })
+
+      output$descarga_pdf <- downloadHandler(
         filename = function() {
           "p.pdf"
         },
         content = function(file) {
-          f_quarto(FILE = file, PARAMS = params_recepcion)
           file.copy("p.pdf", file)
         }
       )
@@ -163,15 +183,13 @@ server <- function(input, output) {
   })
 
   # TABLA CORRELACIONES
-  observeEvent(input$param_tabla, {
-    param_tabla <- reactive(input$param_tabla)
-    corr_mejor <- reactive(input$corr_mejor)
-
-    output$tabla_corr <- renderUI({
+  output$tabla_corr <- renderUI({
+    if (is.null(input$param_tabla) || length(input$param_tabla) == 0) {
+      HTML("Seleccionar un parámetro para mostrar la tabla de correlaciones.")
+    } else {
       l <- map2(input$param_tabla, input$corr_mejor, ~ f_tabla(.x, .y))
-
       layout_columns(!!!l)
-    })
+    }
   })
 
   # SERIE TEMPORAL
