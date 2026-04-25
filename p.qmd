@@ -1,0 +1,162 @@
+---
+title: "Informe"
+author:
+  - name: Víctor Gauto
+    email: victor.gauto@ca.frre.utn.edu.ar
+    affiliation: 
+      - name: GISTAQ
+        url: https://www.instagram.com/gistaq.utn
+format: 
+  typst-pdf:
+    title: GISTAQ
+    author: Servicios a Terceros
+    template-partials: 
+      - extras/typst-show.typ
+      - extras/typst-template.typ
+    fig-height: 4
+date: last-modified
+lang: es
+execute: 
+  eval: true
+  echo: false
+  warning: false
+params:
+  firma: "2023-05-11"
+  mapa: "2026-02-09"
+brand: false
+---
+
+<!-- https://yihui.org/rmarkdown-cookbook/latex-logo -->
+<!-- https://yihui.org/rmarkdown-cookbook/latex-header -->
+
+```{r}
+library(tidyverse)
+library(terra)
+
+source("scripts/soporte.R")
+param_informe <- names(param_nombre[param_nombre == params$tabla])
+```
+
+<!-- ```{=typst}
+#v(10pt)
+``` -->
+
+# Firma espectral
+
+Comportamiento espectral de las muestras de agua sobre el **Río Paraná** en su cuenca media. Se destacan los firmas espectrales de la orilla [**chaqueña**]{style='color: #ae8448;'} y [**correntina**]{style='color: #178f92;'}.
+
+```{r}
+#| fig-height: 3
+if (!is.null(params$firma)) {
+  e <- filter(d, fecha == ymd(params$firma)) %>%
+    mutate(
+      lado = case_when(
+        punto == min(.$punto) ~ "Chaco",
+        punto == max(.$punto) ~ "Corrientes",
+        .default = "X"
+      )
+    ) |>
+    mutate(lado = fct(lado, c("X", "Chaco", "Corrientes"))) |>
+    arrange(lado)
+
+  ggplot(
+    filter(e, lado != "X"),
+    aes(banda, reflect_acolite, group = punto, color = lado)
+  ) +
+    geom_line(
+      data = filter(e, lado == "X"),
+      aes(banda, reflect_acolite, group = punto),
+      color = "grey",
+      linewidth = .2
+    ) +
+    geom_line(linewidth = 1) +
+    geom_point(size = 1.5, shape = 21, fill = "white") +
+    scale_color_manual(
+      values = c("Corrientes" = "#178f92", "Chaco" = "#ae8448"),
+      name = NULL
+    ) +
+    labs(title = params$firma, x = NULL, y = "R<sub>rs</sub>") +
+    ggthemes::theme_few() +
+    theme(aspect.ratio = .6) +
+    theme_sub_panel(
+      grid.major = element_line(color = "lightgrey", linewidth = .1)
+    ) +
+    theme_sub_axis(
+      text = element_text(color = "black"),
+      ticks = element_blank()
+    ) +
+    theme_sub_axis_left(
+      title = ggtext::element_markdown(angle = 0, vjust = .5)
+    ) +
+    theme_sub_legend(
+      text.position = "left",
+      position = "inside",
+      position.inside = c(1, 1),
+      justification.inside = c(1, 1),
+      key = element_blank(),
+      background = element_blank()
+    ) +
+    theme_sub_axis_bottom(text = element_text(face = "bold"))
+}
+```
+
+# Mapa
+
+Figuras de distribución espacial sobre la región de interés.
+
+## Turbidez
+
+```{r}
+#| fig-align: center
+if (!is.null(params$mapa)) {
+  terra::plot(
+    f_turb2(as.Date(params$mapa)),
+    main = params$mapa,
+    axes = TRUE,
+    zebra = TRUE,
+    box = TRUE,
+    mar = c(1.1, 0, 2, 0),
+    buffer = FALSE,
+    background = "grey90",
+    col = colorRampPalette(
+      RColorBrewer::brewer.pal(name = "YlGnBu", n = 9)
+    )(
+      500
+    ),
+    plg = list(title = "[NTU]", title.x = -58.848, title.y = -27.4585),
+    pax = list(tick = FALSE, line = 0, cex = .25)
+  )
+  north(xy = "topleft", type = 1, label = "N", cex = .5)
+}
+```
+
+## Profundidad de disco de Secchi
+
+```{r}
+#| fig-align: center
+#| eval: true
+if (!is.null(params$mapa)) {
+  terra::plot(
+    f_turb2(as.Date(params$mapa)),
+    main = params$mapa,
+    axes = TRUE,
+    zebra = TRUE,
+    box = TRUE,
+    mar = c(1.1, 0, 2, 0),
+    buffer = FALSE,
+    background = "grey90",
+    col = colorRampPalette(
+      RColorBrewer::brewer.pal(name = "PuRd", n = 9)
+    )(
+      500
+    ),
+    plg = list(title = "[cm]", title.x = -58.848, title.y = -27.4585),
+    pax = list(tick = FALSE, line = 5)
+  )
+  north(xy = "topleft", type = 1, label = "N", cex = .5)
+}
+```
+
+```{=typst}
+#v(1fr) #align(right)[Reporte generado el `{r} today(tzone = Sys.timezone())`]
+```
