@@ -9,6 +9,10 @@ vectores*
 .Rbuild*
 test.R
 scripts/.*
+datos_excel
+fig
+img
+p_files
 
 # Session Data files
 .RData
@@ -59,3 +63,5 @@ rsconnect/
 /.quarto/
 **/*.quarto_ipynb
 _extensions/
+
+/.luarc.json
