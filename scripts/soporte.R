@@ -17,6 +17,7 @@ library(brand.yml)
 library(corrr)
 library(tidymodels)
 library(tidyverse)
+library(ranger)
 
 violeta <- "#341648" # MetBrewer: Tam
 verde <- "#007e2e"
