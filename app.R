@@ -1,4 +1,5 @@
 source("scripts/soporte.R")
+source("scripts/panel_quarto.R")
 source("scripts/panel_mapa.R")
 source("scripts/panel_figura.R")
 source("scripts/panel_tabla.R")
@@ -7,7 +8,8 @@ source("scripts/panel_publicaciones.R")
 source("scripts/panel_integrantes.R")
 
 # TODO: márgenes alrededor de firma espectral/serie temporal
-# TODO: mini render quarto ?
+# TODO: mantener eje vertical constante en firma espectral
+# TODO: input_task_button()
 
 ui <- page_navbar(
   tags$head(tags$link(rel = "shortcut icon", href = "favicon.png")),
@@ -24,6 +26,7 @@ ui <- page_navbar(
   panel_figura,
   panel_tabla,
   panel_serie_temporal,
+  panel_quarto,
   panel_publicaciones,
   panel_integrantes,
   nav_spacer(),
@@ -35,6 +38,31 @@ ui <- page_navbar(
 )
 
 server <- function(input, output) {
+  # QUARTO
+
+  observeEvent(
+    list(
+      input$quarto_fecha_firma,
+      input$quarto_fecha_mapa,
+      input$quarto_fecha_tabla
+    ),
+    {
+      params_recepcion <- list(
+        firma = input$quarto_fecha_firma,
+        mapa = input$quarto_fecha_mapa
+      )
+      output$render_quarto <- downloadHandler(
+        filename = function() {
+          "p.pdf"
+        },
+        content = function(file) {
+          f_quarto(FILE = file, PARAMS = params_recepcion)
+          file.copy("p.pdf", file)
+        }
+      )
+    }
+  )
+
   # MAPA
   # paleta de colores para TURB y SECCHI
   observeEvent(
