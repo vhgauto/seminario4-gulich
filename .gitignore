@@ -65,3 +65,4 @@ rsconnect/
 _extensions/
 
 /.luarc.json
+.positai
