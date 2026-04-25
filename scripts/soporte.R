@@ -236,7 +236,13 @@ f_firma_espectral <- function(FECHA, VAR) {
   e2 <- filter(d, fecha == FECHA) |>
     select(all_of(c("punto", "banda", VAR))) |>
     rename("y" = 3) |>
-    distinct()
+    distinct() |> 
+    mutate(label = paste0(round(y, 3), "\nPunto: ", punto))
+  
+  ylim_min <- range(subset(d, fecha == FECHA)$reflect_acolite) |> 
+    min()
+  ylim_max <- range(subset(d, fecha == FECHA)$reflect_sen2cor) |> 
+    max()
 
   g1 <- ggplot(e1, aes(longitud, 1, fill = as.factor(punto))) +
     geom_point_interactive(
@@ -270,7 +276,7 @@ f_firma_espectral <- function(FECHA, VAR) {
   g2 <- ggplot(e2, aes(banda, y, group = punto, color = as.factor(punto))) +
     geom_line_interactive(aes(data_id = punto), linewidth = 1, alpha = .5) +
     geom_point_interactive(
-      aes(tooltip = round(y, 2), data_id = punto),
+      aes(tooltip = label, data_id = punto),
       hover_nearest = TRUE,
       size = 1.7,
       shape = 21,
@@ -278,13 +284,20 @@ f_firma_espectral <- function(FECHA, VAR) {
       stroke = 1,
       alpha = .5
     ) +
-    labs(x = NULL, y = "R<sub>rs</sub>") +
+    # scale_y_continuous(
+    #   limits = c(ylim_min*.99, ylim_max*1.05), expand = c(0, 0)
+    # ) +
     scale_color_manual(
       values = colorRampPalette(c("brown", "turquoise"))(length(unique(
         e2$punto
       ))),
       guide = guide_none()
     ) +
+    coord_cartesian(
+      ylim = c(ylim_min*.99, ylim_max*1.05), xlim = c(.75, 11.25), 
+      expand = FALSE, clip = "off"
+    ) +
+    labs(x = NULL, y = "R<sub>rs</sub>") +
     theme_few(base_family = "Fira Code") +
     theme_sub_axis(text = element_text(color = negro)) +
     theme_sub_axis_x(text = element_text(face = "bold")) +
@@ -310,7 +323,7 @@ f_firma_espectral <- function(FECHA, VAR) {
           fill = "transparent",
           color = "transparent"
         ),
-        margin = margin(r = 10)
+        margin = margin(r = 15, l = 5)
       )
 
   girafe(
@@ -331,8 +344,8 @@ f_firma_espectral <- function(FECHA, VAR) {
           "border-style:solid;border-color:{violeta};background:{blanco}"
         ),
         use_cursor_pos = TRUE,
-        offx = 5,
-        offy = 5
+        offx = 15,
+        offy = 15
       ),
       opts_toolbar(saveaspng = FALSE, hidden = c("selection", "zoom", "misc"))
     ),
@@ -444,7 +457,8 @@ d_altura <- vroom::vroom("datos/altura.csv", show_col_types = FALSE) |>
   filter(year(fecha) >= 2000)
 m_altura <- mean(d_altura$altura)
 fecha_altura_min <- min(d_altura$fecha)
-fecha_altura_max <- max(d_altura$fecha)
+fecha_altura_max <- ymd(20001231)
+# fecha_altura_max <- max(d_altura$fecha)
 
 estilo_serie_temporal <- function(g) {
   g +
@@ -478,7 +492,7 @@ estilo_serie_temporal <- function(g) {
       grid.minor = element_line(color = gris, linewidth = .1),
       background = element_blank()
     ) +
-    theme_sub_plot(background = element_blank(), margin = margin())
+    theme_sub_plot(background = element_blank(), margin = margin(r = 10, l = 5))
 }
 
 f_serie_temporal_altura <- function(
@@ -504,7 +518,7 @@ f_serie_temporal_altura <- function(
         linetype = 2,
         linewidth = 1
       ) +
-      tidyquant::geom_ma(n = n_ma, linetype = 1, linewidth = 1, color = verde)
+      tidyquant::geom_ma(n = n_ma, linetype = 1, linewidth = 1, color = violeta)
     g <- estilo_serie_temporal(g_ma)
   } else {
     g_serie <- d_serie |>
@@ -531,7 +545,7 @@ f_serie_temporal_altura <- function(
     ggobj = g,
     options = list(
       opts_hover_inv(css = "opacity:.7"),
-      opts_hover(css = girafe_css(css = "fill:red;")),
+      opts_hover(css = girafe_css(css = "fill:white;size:10pt")),
       opts_tooltip(
         opacity = 1,
         css = glue(
