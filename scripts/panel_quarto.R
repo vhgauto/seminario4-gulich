@@ -1,26 +1,3 @@
-# panel_quarto <- nav_panel(
-
-# layout_sidebar(
-#   sidebar = sidebar(
-#     title = h1("PDF"),
-#     selectInput(
-#       "quarto_fecha_firma",
-#       label = "Opciones",
-#       choices = quarto_fecha_firma
-#     ),
-#     selectInput(
-#       "quarto_fecha_mapa",
-#       label = "Opciones",
-#       choices = quarto_fecha_mapa
-#     )
-#   ),
-#   card(
-#     input_task_button("render_quarto", "Generar reporte"),
-#     uiOutput("boton_descarga_reporte")
-#   )
-# )
-# )
-
 panel_quarto <- nav_panel(
   title = h5(
     span(
@@ -33,7 +10,7 @@ panel_quarto <- nav_panel(
     layout_column_wrap(
       width = 1,
       card(
-        card_header("Card 1"),
+        card_header(span("Card1", class = "card-titulo")),
         selectInput(
           "quarto_fecha_firma",
           label = "Opciones",
@@ -41,7 +18,7 @@ panel_quarto <- nav_panel(
         )
       ),
       card(
-        card_header("Card 2"),
+        card_header(span("Card2", class = "card-titulo")),
         selectInput(
           "quarto_fecha_mapa",
           label = "Opciones",
@@ -50,7 +27,7 @@ panel_quarto <- nav_panel(
       )
     ),
     card(
-      card_header("Card 3"),
+      card_header(span("Card3", class = "card-titulo")),
       "Single card taking up the entire second column."
     ),
     layout_column_wrap(
