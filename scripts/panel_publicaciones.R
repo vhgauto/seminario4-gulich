@@ -1,5 +1,10 @@
 panel_publicaciones <- nav_panel(
-  title = h5("Publicaciones"),
+  title = h5(
+    span(
+      HTML('<span class="quill--paper"></span>'),
+      "Publicaciones"
+    )
+  ),
   card(
     h3(
       icon_paper,

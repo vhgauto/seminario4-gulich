@@ -1,5 +1,10 @@
 panel_integrantes <- nav_panel(
-  title = h5("Integrantes"),
+  title = h5(
+    span(
+      HTML('<span class="ic--sharp-person-pin"></span>'),
+      "Integrantes"
+    )
+  ),
   card(
     h1("Integrantes"),
     f_integrante(

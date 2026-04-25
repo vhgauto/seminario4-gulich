@@ -1,5 +1,10 @@
 panel_mapa <- nav_panel(
-  title = h5("Distribución espacial"),
+  title = h5(
+    span(
+      HTML('<span class="material-symbols--map"></span>'),
+      "Mapas"
+    )
+  ),
   layout_sidebar(
     sidebar = sidebar(
       title = h1("Opciones"),

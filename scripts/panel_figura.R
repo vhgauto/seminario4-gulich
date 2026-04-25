@@ -1,6 +1,10 @@
 panel_figura <- nav_panel(
-  title = h5("Firma espectral"),
-
+  title = h5(
+    span(
+      HTML('<span class="lets-icons--line-up"></span>'),
+      "Firma espectral"
+    )
+  ),
   layout_sidebar(
     sidebar = sidebar(
       title = h1("Opciones"),
