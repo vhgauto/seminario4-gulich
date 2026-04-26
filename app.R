@@ -4,10 +4,11 @@ source("scripts/panel_mapa.R")
 source("scripts/panel_figura.R")
 source("scripts/panel_tabla.R")
 source("scripts/panel_serie_temporal.R")
+source("scripts/panel_caudal.R")
 source("scripts/panel_publicaciones.R")
 source("scripts/panel_integrantes.R")
 
-# TODO: márgenes alrededor de firma espectral/serie temporal
+# TODO: verificar símbolo decimal en figuras/tablas
 
 ui <- page_navbar(
   tags$head(tags$link(rel = "shortcut icon", href = "favicon.png")),
@@ -22,6 +23,7 @@ ui <- page_navbar(
   ),
   panel_mapa,
   panel_figura,
+  panel_caudal,
   panel_tabla,
   panel_serie_temporal,
   panel_quarto,
@@ -202,7 +204,6 @@ server <- function(input, output, session) {
   observeEvent(
     list(input$fecha_altura_min,
     input$fecha_altura_max),
-    # condición_fechas(),
     {
       if (condición_fechas()) {
         showModal(
@@ -228,7 +229,6 @@ server <- function(input, output, session) {
     input$fecha_altura_min,
     input$fecha_altura_max
   ), {
-    # boton_ma <- reactiveVal(FALSE)
     serie_temporal_ma <- reactive(input$serie_temporal_ma)
     condición_período_fechas <- reactive({
       as.numeric(input$fecha_altura_max - input$fecha_altura_min) > 0 &
@@ -329,6 +329,64 @@ server <- function(input, output, session) {
       )
     }
   )
+  # CAUDAL ----
+  output$serie_caudal <- renderPlot({
+    f_caudal()
+  })
+  
+  output$value_box_caudal <- renderUI({
+    v <- nearPoints(
+      terra::as.data.frame(d_caudal, xy = TRUE),
+      input$plot_click, xvar = "fecha", yvar = "caudal",
+      addDist = FALSE,
+      allRows = FALSE,
+      maxpoints = 1
+    )
+    
+    l <- list(
+      bslib::value_box(
+        title = markdown("Caudal (m<sup>3</sup> s<sup>-1</sup>)"),
+        value = round(v$caudal, 1),
+        showcase = bsicons::bs_icon("water"),
+        theme = value_box_theme(bg = "#451b40")
+      ),
+      bslib::value_box(
+        title = "Fecha",
+        value = v$fecha,
+        showcase = bsicons::bs_icon("calendar-event-fill"),
+        theme = value_box_theme(bg = "#324d5a"),
+        fill = TRUE,
+        class = "p-0"
+      ),
+      bslib::value_box(
+        title = "Altura (m)",
+        value = round(v$altura, 1),
+        showcase = bsicons::bs_icon("arrow-up-right-circle-fill"),
+        theme = value_box_theme(bg = "#589445"),
+        fill = TRUE,
+        class = "p-0"
+      ),
+      bslib::value_box(
+        title = "Temperatura (°C)",
+        value = round(v$temperatura, 1),
+        showcase = bsicons::bs_icon("thermometer-half"),
+        theme = value_box_theme(bg = "#dcc88b"),
+        fill = TRUE,
+        class = "p-0"
+      ),
+      bslib::value_box(
+        title = markdown("Viento (km h<sup>-1</sup>)"),
+        value = round(v$viento, 1),
+        showcase = bsicons::bs_icon("wind"),
+        theme = value_box_theme(bg = "#b5003c"),
+        fill = FALSE,
+        class = "p-0"
+      )
+    )
+    
+    layout_column_wrap(width = 1, !!!l)
+    
+  })
 }
 
 shinyApp(ui, server)
