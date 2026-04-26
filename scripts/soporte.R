@@ -353,6 +353,30 @@ f_firma_espectral <- function(FECHA, VAR) {
   )
 }
 
+
+# panel caudal ------------------------------------------------------------
+
+f_caudal <- function() {
+  d_caudal |> 
+    filter(year(fecha) < 2005) |> 
+    ggplot(aes(fecha, caudal)) +
+    geom_line(color = violeta, linewidth = .3) +
+    geom_point(
+      size = 3, shape = 21, fill = blanco, color = violeta, stroke = 1
+    ) +
+    scale_x_date(date_minor_breaks = "3 month") +
+    labs(y = "Caudal (m<sup>3</sup> s<sup>-1</sup>)", x = NULL) +
+    theme_few(base_size = 22, base_family = "Fira Code") +
+    theme_sub_panel(
+      background = element_blank(),
+      grid.major = element_line(color = gris, linewidth = .3),
+      grid.minor = element_line(color = gris, linewidth = .1)
+    ) +
+    theme_sub_axis(text = element_text(color = negro)) +
+    theme_sub_plot(background = element_rect(fill = blanco, color = NA)) +
+    theme_sub_axis_left(title = element_markdown())
+}
+
 # panel integrantes ------------------------------------------------------
 
 f_integrante <- function(TITULO, INTEGRANTE, ORCID, EMAIL = NULL) {
@@ -455,6 +479,20 @@ bib <- bibtex::read.bib("extras/bibliografia.bib") |>
 
 d_altura <- vroom::vroom("datos/altura.csv", show_col_types = FALSE) |>
   filter(year(fecha) >= 2000)
+d_caudal <- vroom::vroom("datos/caudal.csv", show_col_types = FALSE) |>
+  filter(between(year(fecha), 2000, 2003)) |> 
+  mutate(semana = week(fecha), año = year(fecha)) |> 
+  mutate(
+    uno = first(caudal),
+    .by = c(semana, año)
+  ) |> 
+  filter(caudal == uno) |> 
+  select(-uno) |> 
+  # reframe(caudal = mean(caudal), .by = c(año, semana)) |> 
+  left_join(d_altura, by = join_by(fecha)) %>%
+  mutate(temperatura = rnorm(nrow(.), 25, 3)) %>%
+  mutate(viento = rnorm(nrow(.), 5, 2))
+
 m_altura <- mean(d_altura$altura)
 fecha_altura_min <- min(d_altura$fecha)
 fecha_altura_max <- ymd(20001231)
