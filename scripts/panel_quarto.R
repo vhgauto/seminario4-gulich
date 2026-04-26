@@ -10,45 +10,38 @@ panel_quarto <- nav_panel(
     layout_column_wrap(
       width = 1,
       card(
-        card_header(span("Card1", class = "card-titulo")),
+        card_header(span("Firma espectral", class = "card-titulo")),
         selectInput(
           "quarto_fecha_firma",
-          label = "Opciones",
+          label = "Seleccionar fecha para firma espectral",
           choices = quarto_fecha_firma
         )
       ),
       card(
-        card_header(span("Card2", class = "card-titulo")),
+        card_header(span("Mapa", class = "card-titulo")),
         selectInput(
           "quarto_fecha_mapa",
-          label = "Opciones",
+          label = "Seleccionar fecha para mapa de turbidez y profundidad de disco de Secchi.",
           choices = quarto_fecha_mapa
         )
       )
     ),
     card(
-      card_header(span("Card3", class = "card-titulo")),
+      card_header(span("Ejemplo", class = "card-titulo")),
       "Single card taking up the entire second column."
     ),
     layout_column_wrap(
       width = 1,
-      # heights_equal = "row",
-      # height = 300,
       fill = FALSE,
       input_task_button(
-        "render_quarto",
-        "Generar reporte",
-        # width = "100%",
-        # height = "100%",
+        id = "render_quarto",
+        label = span("Generar reporte", style = "font-size: 2em"),
+        label_busy = span(
+          "El reporte estará listo en pocos segundos", style = "font-size: 2em"
+        ),
         style = "height: 200px"
       ),
       uiOutput("boton_descarga_reporte")
-      # downloadButton(
-      #   "gg",
-      #   "HOLA",
-      #   style = "height: 200px; text-align: center; color: red;
-      #   vertical-align: middle;"
-      # )
     )
   )
 )
