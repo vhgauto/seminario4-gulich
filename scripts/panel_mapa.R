@@ -23,24 +23,19 @@ panel_mapa <- nav_panel(
       icon = HTML('<i class="bi bi-leaf-fill"></i>'),
       span(
         HTML(
-          "El modelo para estimar turbidez se basa en la banda B05 (704 nm) de Sentinel-2 MSI "
+          "Los modelos para estimar <b>turbidez</b> y <b>profuncidad de disco de Secchi</b> son <em>random forest</em> que utilizan las bandas disponibles de Sentinel-2, sensor MSI, nivel de procesamiento L2A en reflectancia de superficie"
         ),
         popover(
           HTML('<i class="bi bi-info-circle-fill"></i>.'),
-          includeMarkdown(bib[1])
-        )
-      ),
-      span(
-        HTML(
-          "La estimación de profundidad de disco de Secchi utiliza la banda X "
-        ),
-        popover(
-          HTML('<i class="bi bi-info-circle-fill"></i>.'),
-          includeMarkdown(bib[1])
+          includeMarkdown(bib[6])
         )
       ),
       hr(),
-      downloadButton("descarga_raster", "Descargar ráster")
+      downloadButton(
+        "descarga_raster",
+        strong("Descargar ráster"),
+        style = glue::glue("background-color: {verde};color: white;")
+      )
     ),
     card(
       card_header(
