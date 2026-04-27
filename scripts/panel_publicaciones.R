@@ -20,8 +20,9 @@ panel_publicaciones <- nav_panel(
       icon_autor,
       "Gauto V, Utgés E, Tenev D, Ferral A, Cardozo O, Acosta M, Gómez V, Geneyer V, Bonansea M",
     ),
-    span(icon_año, "2025"),
-    hr(),
+    span(icon_año, "2025")
+  ),
+  card(
     h3(
       icon_paper,
       "Turbidity Estimation by Machine Learning Modelling and Remote Sensing Techniques Applied to a Water Treatment Plant"
@@ -37,7 +38,8 @@ panel_publicaciones <- nav_panel(
       "Gauto V, Utgés E, Hervot E, Tenev MD, Farías A",
     ),
     span(icon_año, "2025"),
-    hr(),
+  ),
+  card(
     h3(
       icon_paper,
       "Remote Sensing Regression Models to Estimate Water Quality Indicators in Continental Waters in North-East Argentina"
