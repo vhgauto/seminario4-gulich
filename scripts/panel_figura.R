@@ -10,7 +10,7 @@ panel_figura <- nav_panel(
       title = h1("Opciones"),
       selectInput(
         "firma_espectral_sensor",
-        "Procesador",
+        "Procesador de corrección atmosférica",
         c("ACOLITE", "SEN2COR")
       ),
       selectInput(
@@ -27,16 +27,16 @@ panel_figura <- nav_panel(
         ),
         popover(
           HTML('<i class="bi bi-info-circle-fill"></i>.'),
-          includeMarkdown(bib[2])
+          includeMarkdown(bib[4])
         )
       ),
       span(
         HTML(
-          "Como alternativa al procesamiento de datos, <i>ACOLITE</i>"
+          "Se utilizó <i>ACOLITE</i> como alternativa al procesamiento de datos"
         ),
         popover(
           HTML('<i class="bi bi-info-circle-fill"></i>.'),
-          includeMarkdown(bib[3])
+          includeMarkdown(bib[5])
         )
       )
     ),
