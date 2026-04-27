@@ -9,13 +9,14 @@ source("scripts/panel_publicaciones.R")
 source("scripts/panel_integrantes.R")
 
 # TODO: verificar símbolo decimal en figuras/tablas
+# TODO: verificar paquetes, no cargarlos a todos al inicio
 
 ui <- page_navbar(
   tags$head(tags$link(rel = "shortcut icon", href = "favicon.png")),
   title = a(
     HTML("Proyecto Paraná"),
-    href = "https://019d775d-3cc3-1ed8-fc69-3a457d8f7a43.share.connect.posit.cloud/",
-    style = glue("text-decoration: none; color: {verde};")
+    href = "https://vhgauto-seminario4-gulich.share.connect.posit.cloud/",
+    style = glue::glue("text-decoration: none; color: {verde};")
   ),
   navbar_options = navbar_options(
     bg = "#e5e5e5",
@@ -38,7 +39,7 @@ ui <- page_navbar(
 )
 
 server <- function(input, output, session) {
-  # QUARTO
+  # QUARTO ----
   observeEvent(
     list(
       input$quarto_fecha_firma,
@@ -69,7 +70,10 @@ server <- function(input, output, session) {
         downloadButton(
           "descarga_pdf",
           "Descargar PDF",
-          style = "height: 200px"
+          style = glue::glue(
+            "height: 200px; background-color:{verde}; color: white;",
+            "font-size: 2em; padding-top: 70px;"
+          )
         )
       })
 
@@ -84,7 +88,7 @@ server <- function(input, output, session) {
     }
   )
 
-  # MAPA
+  # MAPA ----
   # paleta de colores para TURB y SECCHI
   observeEvent(
     input$tipo,
@@ -93,14 +97,13 @@ server <- function(input, output, session) {
       if (tipo() != "RGB") {
         output$gear_paleta <- renderUI({
           popover(
-            bsicons::bs_icon("gear-fill", color = "white"),
+            bsicons::bs_icon("gear-fill", color = "white", size = "1.5em"),
             selectInput(
               "paletas_mapa",
               label = "Seleccionar paleta de colores",
               choices = paletas,
               selected = input$paletas_mapa
-            ),
-            title = "Estilo del mapa"
+            )
           )
         })
       } else {
@@ -160,7 +163,7 @@ server <- function(input, output, session) {
     )
   })
 
-  # FIRMA ESPECTRAL
+  # FIRMA ESPECTRAL ----
   observeEvent(input$firma_espectral_sensor, {
     sensor <- reactive(input$firma_espectral_sensor)
 
@@ -183,27 +186,31 @@ server <- function(input, output, session) {
     }
   })
 
-  # TABLA CORRELACIONES
+  # TABLA CORRELACIONES ----
   output$tabla_corr <- renderUI({
     if (is.null(input$param_tabla) || length(input$param_tabla) == 0) {
-      HTML("Seleccionar un parámetro para mostrar la tabla de correlaciones.")
+      card(
+        strong(
+          "Seleccionar un parámetro para mostrar la tabla de correlaciones."
+        ),
+        style = "background-color: #a9a9a9; color: white; font-size: 2em;"
+      )
     } else {
       l <- map2(input$param_tabla, input$corr_mejor, ~ f_tabla(.x, .y))
       layout_columns(!!!l)
     }
   })
 
-  # SERIE TEMPORAL
+  # SERIE TEMPORAL ----
   condición_fechas <- reactive({
     input$fecha_altura_min > input$fecha_altura_max
   })
   condición_período_fechas <- reactive({
     as.numeric(input$fecha_altura_max - input$fecha_altura_min) > 0 &
-    as.numeric(input$fecha_altura_max - input$fecha_altura_min) < 60
+      as.numeric(input$fecha_altura_max - input$fecha_altura_min) < 60
   })
   observeEvent(
-    list(input$fecha_altura_min,
-    input$fecha_altura_max),
+    list(input$fecha_altura_min, input$fecha_altura_max),
     {
       if (condición_fechas()) {
         showModal(
@@ -224,56 +231,62 @@ server <- function(input, output, session) {
     }
   )
 
-  observeEvent(list(
-    input$serie_temporal_ma,
-    input$fecha_altura_min,
-    input$fecha_altura_max
-  ), {
-    serie_temporal_ma <- reactive(input$serie_temporal_ma)
-    condición_período_fechas <- reactive({
-      as.numeric(input$fecha_altura_max - input$fecha_altura_min) > 0 &
-        as.numeric(input$fecha_altura_max - input$fecha_altura_min) < 60
-    })
-    if (serie_temporal_ma() & condición_período_fechas()) {
-      showModal(
-        modalDialog(
-          title = "Rango de fechas debe ser superior a 60 días.",
-          easyClose = TRUE,
-          "La fecha.",
-          footer = modalButton("Cerrar")
-        )
-      )
-      # serie_temporal_ma(FALSE)
-      output$slider_ma <- renderUI({
-        NULL
+  observeEvent(
+    list(
+      input$serie_temporal_ma,
+      input$fecha_altura_min,
+      input$fecha_altura_max
+    ),
+    {
+      serie_temporal_ma <- reactive(input$serie_temporal_ma)
+      condición_período_fechas <- reactive({
+        as.numeric(input$fecha_altura_max - input$fecha_altura_min) > 0 &
+          as.numeric(input$fecha_altura_max - input$fecha_altura_min) < 60
       })
-      output$serie_temporal_altura <- renderGirafe({
-        f_serie_temporal_altura(
-          FECHA_MIN = fecha_altura_min,
-          FECHA_MAX = fecha_altura_max
+      if (serie_temporal_ma() & condición_período_fechas()) {
+        showModal(
+          modalDialog(
+            title = "Rango de fechas debe ser superior a 60 días.",
+            easyClose = TRUE,
+            "La fecha.",
+            footer = modalButton("Cerrar")
+          )
         )
-      })
-      updatePrettyToggle(
-        session = session, inputId = "serie_temporal_ma", value = FALSE)
+
+        output$slider_ma <- renderUI({
+          NULL
+        })
+        output$serie_temporal_altura <- renderGirafe({
+          f_serie_temporal_altura(
+            FECHA_MIN = fecha_altura_min,
+            FECHA_MAX = fecha_altura_max
+          )
+        })
+        shinyWidgets::updatePrettySwitch(
+          session = session,
+          inputId = "serie_temporal_ma",
+          value = FALSE
+        )
+      }
+
+      if (serie_temporal_ma() & !condición_período_fechas()) {
+        output$slider_ma <- renderUI({
+          sliderInput(
+            "ma",
+            "Elegir tamaño de ventana, en días.",
+            min = 10,
+            max = 50,
+            value = 20,
+            step = seq(10, 50, 10)
+          )
+        })
+      } else {
+        output$slider_ma <- renderUI({
+          NULL
+        })
+      }
     }
-    
-    if (serie_temporal_ma() & !condición_período_fechas()) {
-      output$slider_ma <- renderUI({
-        sliderInput(
-          "ma",
-          "Elegir tamaño de ventana, en días.",
-          min = 10,
-          max = 50,
-          value = 20,
-          step = seq(10, 50, 10)
-        )
-      })
-    } else {
-      output$slider_ma <- renderUI({
-        NULL
-      })
-    }
-  })
+  )
 
   observeEvent(
     list(
@@ -283,7 +296,10 @@ server <- function(input, output, session) {
       input$ma
     ),
     {
-      período_válido <- as.numeric(input$fecha_altura_max - input$fecha_altura_min) >= 60
+      período_válido <- as.numeric(
+        input$fecha_altura_max - input$fecha_altura_min
+      ) >=
+        60
       output$serie_temporal_altura <- renderGirafe({
         if (input$serie_temporal_ma && !is.null(input$ma) && período_válido) {
           f_serie_temporal_altura(
@@ -333,59 +349,76 @@ server <- function(input, output, session) {
   output$serie_caudal <- renderPlot({
     f_caudal()
   })
-  
+
   output$value_box_caudal <- renderUI({
     v <- nearPoints(
       terra::as.data.frame(d_caudal, xy = TRUE),
-      input$plot_click, xvar = "fecha", yvar = "caudal",
+      input$plot_click,
+      xvar = "fecha",
+      yvar = "caudal",
       addDist = FALSE,
       allRows = FALSE,
       maxpoints = 1
     )
-    
+
     l <- list(
-      bslib::value_box(
-        title = markdown("Caudal (m<sup>3</sup> s<sup>-1</sup>)"),
-        value = round(v$caudal, 1),
-        showcase = bsicons::bs_icon("water"),
-        theme = value_box_theme(bg = "#451b40")
-      ),
-      bslib::value_box(
+      value_box(
         title = "Fecha",
         value = v$fecha,
         showcase = bsicons::bs_icon("calendar-event-fill"),
         theme = value_box_theme(bg = "#324d5a"),
-        fill = TRUE,
         class = "p-0"
       ),
-      bslib::value_box(
+      value_box(
+        title = markdown("Caudal (m<sup>3</sup> s<sup>-1</sup>)"),
+        value = formato(round(v$caudal, 0)),
+        showcase = bsicons::bs_icon("water"),
+        theme = value_box_theme(bg = "#451b40"),
+        span(
+          "Fuente: ",
+          a(
+            HTML("<b>Sistema Nacional de Información Hídrica</b>"),
+            href = "https://snih.hidricosargentina.gob.ar/",
+            target = "_blank",
+            style = "color:white"
+          ),
+          style = "color:white"
+        )
+      ),
+      value_box(
         title = "Altura (m)",
-        value = round(v$altura, 1),
+        value = formato(round(v$altura, 1), nsmall = 1),
         showcase = bsicons::bs_icon("arrow-up-right-circle-fill"),
         theme = value_box_theme(bg = "#589445"),
-        fill = TRUE,
-        class = "p-0"
+        class = "p-0",
+        span(
+          "Fuente: ",
+          a(
+            HTML("<b>Sistema Nacional de Información Hídrica</b>"),
+            href = "https://snih.hidricosargentina.gob.ar/",
+            target = "_blank",
+            style = "color:white"
+          ),
+          style = "color:white"
+        )
       ),
-      bslib::value_box(
+      value_box(
         title = "Temperatura (°C)",
-        value = round(v$temperatura, 1),
+        value = formato(round(v$temperatura, 1), nsmall = 1),
         showcase = bsicons::bs_icon("thermometer-half"),
         theme = value_box_theme(bg = "#dcc88b"),
-        fill = TRUE,
         class = "p-0"
       ),
-      bslib::value_box(
+      value_box(
         title = markdown("Viento (km h<sup>-1</sup>)"),
-        value = round(v$viento, 1),
+        value = formato(round(v$viento, 1), nsmall = 1),
         showcase = bsicons::bs_icon("wind"),
         theme = value_box_theme(bg = "#b5003c"),
-        fill = FALSE,
         class = "p-0"
       )
     )
-    
+
     layout_column_wrap(width = 1, !!!l)
-    
   })
 }
 
