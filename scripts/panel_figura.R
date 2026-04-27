@@ -47,7 +47,8 @@ panel_figura <- nav_panel(
           class = "card-titulo"
         )
       ),
-      girafeOutput("firma_espectral_plot")
+      girafeOutput("firma_espectral_plot"),
+      card_footer("El eje vertical se mantiene constante para la misma fecha permitiendo la comparación entre procesadores de corrección atmosférica.")
     )
   )
 )
