@@ -7,17 +7,24 @@ library(leaflet)
 library(leafem)
 library(leaflet.extras)
 library(ggiraph)
-library(ggtext)
+# library(ggtext)
 library(patchwork)
-library(ggthemes)
-library(gt)
-library(glue)
-library(shinyWidgets)
-library(brand.yml)
-library(corrr)
+# library(ggthemes)
+# library(gt)
+# library(glue)
+# library(shinyWidgets)
+# library(brand.yml)
+# library(corrr)
 library(tidymodels)
 library(tidyverse)
-library(ranger)
+# library(ranger)
+
+if (FALSE) {
+  library(brand.yml)
+  library(ranger)
+}
+
+# colores ----------------------------------------------------------------
 
 violeta <- "#341648" # MetBrewer: Tam
 verde <- "#007e2e"
@@ -25,18 +32,47 @@ blanco <- "#f2f2f2"
 negro <- "#000000"
 gris <- "grey80"
 
+formato <- function(X, ...) {
+  format(X, big.mark = ".", decimal.mark = ",", ...)
+}
+
+# links ------------------------------------------------------------------
+
+rrss_instagram <- tags$a(
+  shiny::icon("instagram"),
+  href = "https://www.instagram.com/gistaq.utn",
+  target = "_blank",
+  style = "font-size: 1.3em;"
+)
+
+rrss_github <- tags$a(
+  shiny::icon("github"),
+  href = "https://github.com/vhgauto/seminario4-gulich",
+  target = "_blank",
+  style = "font-size: 1.3em;"
+)
+
+icon_doi <- HTML('<span class="simple-icons--doi"></span>')
+icon_paper <- HTML('<span class="quill--paper"></span>')
+icon_autor <- HTML('<span class="material-symbols--person"></span>')
+icon_año <- HTML('<span class="mdi--calendar"></span>')
+
 # datos ------------------------------------------------------------------
 
+# recortes de interés
 l <- list.files("recortes/", full.names = TRUE)
 l <- l[str_detect(l, "2026")]
 
+# fechas de los recortes
 fechas <- basename(l) |>
   gsub(".tif", "", x = _) |>
   ymd()
 
+# ráster
 r <- lapply(l, rast)
 r <- setNames(r, fechas)
 
+# orden correcto de bandas S2-MSI
 banda_fct <- c(
   "B01",
   "B02",
@@ -51,12 +87,15 @@ banda_fct <- c(
   "B12"
 )
 
+# datos de laboratorio y espectrales
 d <- read.csv("datos/lab_gis.csv") |>
   as_tibble() |>
   mutate(banda = factor(x = banda, levels = banda_fct))
 
+# fechas de las firmas espectrales
 fechas_firma_espectral <- unique(d$fecha)
 
+# nombre y unidades de los parámetros de laboratorio
 param_etq <- c(
   "turb" = "Turbidez (NTU)",
   "secchi" = "Profundidad de disco de Secchi (cm)",
@@ -69,14 +108,78 @@ param_nombre <- setNames(
   c("Turbidez", "Profundidad de disco", "Sólidos suspendidos", "Conductividad")
 )
 
+# vector para recortar el Paraná
 parana <- vect("vectores/sección_paraná.gpkg") |>
   project(r[[1]])
 
+# altura del Río Paraná
+d_altura <- vroom::vroom("datos/altura.csv", show_col_types = FALSE) |>
+  filter(year(fecha) >= 2000)
+
+# caudal del Río Paraná
+d_caudal <- vroom::vroom("datos/caudal.csv", show_col_types = FALSE) |>
+  filter(between(year(fecha), 2000, 2003)) |>
+  mutate(semana = week(fecha), año = year(fecha)) |>
+  mutate(
+    uno = first(caudal),
+    .by = c(semana, año)
+  ) |>
+  filter(caudal == uno) |>
+  select(-uno) |>
+  left_join(d_altura, by = join_by(fecha)) %>%
+  mutate(temperatura = rnorm(nrow(.), 25, 3)) %>%
+  mutate(viento = rnorm(nrow(.), 5, 2))
+
+# altura promedio y rango de datos
+m_altura <- mean(d_altura$altura)
+fecha_altura_min <- min(d_altura$fecha)
+fecha_altura_max <- ymd(20001231)
+# fecha_altura_max <- max(d_altura$fecha)
+
+# bibliografía -----------------------------------------------------------
+
+bib <- bibtex::read.bib("extras/bibliografia.bib") |>
+  format(style = "text")
+
 # panel mapa -------------------------------------------------------------
+
+# modelos de profundidad de disco y turbidez
+rf_secchi <- get(load("modelos/rf_secchi.Rdata"))
+rf_turb <- get(load("modelos/rf_turb.Rdata"))
+
+# genera ráster de profundidad de disco
+f_secchi2 <- function(FECHA) {
+  y <- lista_agua[[as.character(FECHA)]] |>
+    crop(parana, mask = TRUE)
+  p <- terra::predict(y, workflowsets::extract_workflow(rf_secchi))
+  p <- setNames(p, "secchi")
+  p2 <- p * lista_mascara[[as.character(FECHA)]]
+  q <- global(p2, quantile, probs = c(0.00, 0.99), na.rm = TRUE)
+  p3 <- clamp(p2, q$X0., q$X99., values = FALSE)
+  return(p3)
+}
+
+# genera ráster de turbidez
+f_turb2 <- function(FECHA) {
+  y <- lista_agua[[as.character(FECHA)]] |>
+    crop(parana, mask = TRUE)
+  p <- terra::predict(y, workflowsets::extract_workflow(rf_turb))
+  p <- setNames(p, "turb")
+  p2 <- p * lista_mascara[[as.character(FECHA)]]
+  q <- global(p2, quantile, probs = c(0.02, 0.98), na.rm = TRUE)
+  p3 <- clamp(p2, q$X2., q$X98., values = FALSE)
+  return(p3)
+}
+
+# nombres de paletas de colores para los mapas
+paletas <- RColorBrewer::brewer.pal.info |>
+  filter(category == "seq") |>
+  rownames()
 
 # agua
 lista_cropped_scaled_r <- map(r, ~ .x * 0.0001)
 
+# MNDWI
 lista_mndwi <- map(
   lista_cropped_scaled_r,
   \(X) {
@@ -86,6 +189,7 @@ lista_mndwi <- map(
   }
 )
 
+# máscara
 lista_mascara <- map(lista_mndwi, \(X) {
   y <- thresh(X)
   y[y == 0] <- NA
@@ -96,6 +200,7 @@ lista_mascara <- map(lista_mndwi, \(X) {
   return(s)
 })
 
+# ráster de agua
 lista_agua <- map2(lista_cropped_scaled_r, lista_mascara, ~ .x * .y)
 
 # mapa leaflet de ráster en color real RGB
@@ -207,26 +312,16 @@ leaflet_tipo <- function(FECHA, TIPO, PALETA) {
     addFullscreenControl(position = "bottomright")
 }
 
-# links ------------------------------------------------------------------
-
-rrss_instagram <- tags$a(
-  shiny::icon("instagram"),
-  href = "https://www.instagram.com/gistaq.utn",
-  target = "_blank",
-  style = "font-size: 1.3em;"
-)
-
-rrss_github <- tags$a(
-  shiny::icon("github"),
-  href = "https://github.com/vhgauto/seminario4-gulich",
-  target = "_blank",
-  style = "font-size: 1.3em;"
-)
-
-icon_doi <- HTML('<span class="simple-icons--doi"></span>')
-icon_paper <- HTML('<span class="quill--paper"></span>')
-icon_autor <- HTML('<span class="material-symbols--person"></span>')
-icon_año <- HTML('<span class="mdi--calendar"></span>')
+f_descarga_raster <- function(FECHA, TIPO, FILE) {
+  y <- r[[as.character(FECHA)]]
+  if (TIPO == "Turbidez") {
+    writeRaster(f_turb(FECHA), FILE)
+  } else if (TIPO == "Profundidad de disco") {
+    writeRaster(f_secchi(FECHA), FILE)
+  } else {
+    writeRaster(y, FILE)
+  }
+}
 
 # panel figura -----------------------------------------------------------
 
@@ -236,17 +331,17 @@ f_firma_espectral <- function(FECHA, VAR) {
   e2 <- filter(d, fecha == FECHA) |>
     select(all_of(c("punto", "banda", VAR))) |>
     rename("y" = 3) |>
-    distinct() |> 
+    distinct() |>
     mutate(label = paste0(round(y, 3), "\nPunto: ", punto))
-  
-  ylim_min <- range(subset(d, fecha == FECHA)$reflect_acolite) |> 
+
+  ylim_min <- range(subset(d, fecha == FECHA)$reflect_acolite) |>
     min()
-  ylim_max <- range(subset(d, fecha == FECHA)$reflect_sen2cor) |> 
+  ylim_max <- range(subset(d, fecha == FECHA)$reflect_sen2cor) |>
     max()
 
   g1 <- ggplot(e1, aes(longitud, 1, fill = as.factor(punto))) +
     geom_point_interactive(
-      aes(data_id = punto, tooltip = glue("Punto: {punto}")),
+      aes(data_id = punto, tooltip = glue::glue("Punto: {punto}")),
       hover_nearest = TRUE,
       size = 3,
       shape = 21,
@@ -284,9 +379,6 @@ f_firma_espectral <- function(FECHA, VAR) {
       stroke = 1,
       alpha = .5
     ) +
-    # scale_y_continuous(
-    #   limits = c(ylim_min*.99, ylim_max*1.05), expand = c(0, 0)
-    # ) +
     scale_color_manual(
       values = colorRampPalette(c("brown", "turquoise"))(length(unique(
         e2$punto
@@ -294,14 +386,18 @@ f_firma_espectral <- function(FECHA, VAR) {
       guide = guide_none()
     ) +
     coord_cartesian(
-      ylim = c(ylim_min*.99, ylim_max*1.05), xlim = c(.75, 11.25), 
-      expand = FALSE, clip = "off"
+      ylim = c(ylim_min * .99, ylim_max * 1.05),
+      xlim = c(.75, 11.25),
+      expand = FALSE,
+      clip = "off"
     ) +
     labs(x = NULL, y = "R<sub>rs</sub>") +
-    theme_few(base_family = "Fira Code") +
+    ggthemes::theme_few(base_family = "Fira Code") +
     theme_sub_axis(text = element_text(color = negro)) +
     theme_sub_axis_x(text = element_text(face = "bold")) +
-    theme_sub_axis_y(title = element_markdown(angle = 0, vjust = .5)) +
+    theme_sub_axis_y(
+      title = ggtext::element_markdown(angle = 0, vjust = .5)
+    ) +
     theme_sub_panel(
       grid.major = element_line(color = "grey80", linewidth = .2),
       background = element_blank()
@@ -339,7 +435,7 @@ f_firma_espectral <- function(FECHA, VAR) {
       ),
       opts_tooltip(
         opacity = 1,
-        css = glue(
+        css = glue::glue(
           "color:{negro};padding:5px;font-family: Fira Code;",
           "border-style:solid;border-color:{violeta};background:{blanco}"
         ),
@@ -353,20 +449,26 @@ f_firma_espectral <- function(FECHA, VAR) {
   )
 }
 
-
 # panel caudal ------------------------------------------------------------
 
 f_caudal <- function() {
-  d_caudal |> 
-    filter(year(fecha) < 2005) |> 
+  d_caudal |>
+    filter(year(fecha) < 2005) |>
     ggplot(aes(fecha, caudal)) +
     geom_line(color = violeta, linewidth = .3) +
     geom_point(
-      size = 3, shape = 21, fill = blanco, color = violeta, stroke = 1
+      size = 3,
+      shape = 21,
+      fill = blanco,
+      color = violeta,
+      stroke = 1
     ) +
     scale_x_date(date_minor_breaks = "3 month") +
+    scale_y_continuous(
+      labels = scales::label_number(big.mark = ".", decimal.mark = ",")
+    ) +
     labs(y = "Caudal (m<sup>3</sup> s<sup>-1</sup>)", x = NULL) +
-    theme_few(base_size = 22, base_family = "Fira Code") +
+    ggthemes::theme_few(base_size = 22, base_family = "Fira Code") +
     theme_sub_panel(
       background = element_blank(),
       grid.major = element_line(color = gris, linewidth = .3),
@@ -374,7 +476,7 @@ f_caudal <- function() {
     ) +
     theme_sub_axis(text = element_text(color = negro)) +
     theme_sub_plot(background = element_rect(fill = blanco, color = NA)) +
-    theme_sub_axis_left(title = element_markdown())
+    theme_sub_axis_left(title = ggtext::element_markdown())
 }
 
 # panel integrantes ------------------------------------------------------
@@ -398,7 +500,47 @@ f_integrante <- function(TITULO, INTEGRANTE, ORCID, EMAIL = NULL) {
       )
     } else {
       NULL
-    }
+    },
+    style = "font-size: 2em"
+  )
+}
+
+logo_tbl <- tibble(
+  org = c("gistaq", "ig", "iidthh", "conae", "utn", "unc", "unne", "conicet"),
+  src = c(
+    "logo_gistaq.png",
+    "logo_ig.png",
+    "logo_iidthh.png",
+    "logo_conae.png",
+    "logo_utn.png",
+    "logo_unc.svg",
+    "logo_unne.png",
+    "logo_conicet.png"
+  ),
+  href = c(
+    "https://www.instagram.com/gistaq.utn",
+    "https://ig.conae.unc.edu.ar/",
+    "https://iidthh.conicet.gov.ar/",
+    "https://www.argentina.gob.ar/ciencia/conae",
+    "https://www.frre.utn.edu.ar/",
+    "https://www.unc.edu.ar/",
+    "https://www.unne.edu.ar/",
+    "https://www.conicet.gov.ar/"
+  )
+)
+
+f_logo <- function(ORG) {
+  span(
+    a(
+      img(
+        src = subset(logo_tbl, org == ORG)$src,
+        height = "70"
+      ),
+      href = subset(logo_tbl, org == ORG)$href,
+      target = "_blank",
+      .noWS = "before-end"
+    ),
+    class = "eqi-container"
   )
 }
 
@@ -417,34 +559,37 @@ f_tabla <- function(PARAM, MAYOR) {
     select(1, 2) |>
     tidyr::drop_na() |>
     rename("Banda" = 1, "r" = 2) |>
-    gt() |>
-    fmt_number(r, decimals = 3, sep_mark = ".", dec_mark = ",") |>
-    tab_style(
-      style = cell_text(weight = "bold"),
-      locations = cells_body(columns = "Banda")
+    gt::gt() |>
+    gt::fmt_number(r, decimals = 3, sep_mark = ".", dec_mark = ",") |>
+    gt::tab_style(
+      style = gt::cell_text(weight = "bold"),
+      locations = gt::cells_body(columns = "Banda")
     ) |>
-    tab_style(
-      style = cell_text(align = "center"),
-      locations = list(cells_body(), cells_column_labels())
+    gt::tab_style(
+      style = gt::cell_text(align = "center"),
+      locations = list(gt::cells_body(), gt::cells_column_labels())
     ) |>
-    tab_header(title = md(param_etq[PARAM])) |>
-    tab_options(table.width = 220, table.background.color = "transparent")
+    gt::tab_header(title = gt::md(param_etq[PARAM])) |>
+    gt::tab_options(
+      table.width = 220,
+      table.background.color = "transparent"
+    )
 
   if (MAYOR) {
     tab |>
-      tab_style(
+      gt::tab_style(
         style = list(
-          cell_fill(color = violeta),
-          cell_text(color = "white", weight = "bold")
+          gt::cell_fill(color = violeta),
+          gt::cell_text(color = "white", weight = "bold")
         ),
-        locations = cells_body(rows = abs(r) == max(abs(r)))
+        locations = gt::cells_body(rows = abs(r) == max(abs(r)))
       )
   } else {
     tab
   }
 }
 
-# UI ---------------------------------------------------------------------
+# pie --------------------------------------------------------------------
 
 pie <- span(
   span(
@@ -472,31 +617,7 @@ pie <- span(
     background-color: #e5e5e5; text-align: right"
 )
 
-# bibliografía -----------------------------------------------------------
-
-bib <- bibtex::read.bib("extras/bibliografia.bib") |>
-  format(style = "text")
-
-d_altura <- vroom::vroom("datos/altura.csv", show_col_types = FALSE) |>
-  filter(year(fecha) >= 2000)
-d_caudal <- vroom::vroom("datos/caudal.csv", show_col_types = FALSE) |>
-  filter(between(year(fecha), 2000, 2003)) |> 
-  mutate(semana = week(fecha), año = year(fecha)) |> 
-  mutate(
-    uno = first(caudal),
-    .by = c(semana, año)
-  ) |> 
-  filter(caudal == uno) |> 
-  select(-uno) |> 
-  # reframe(caudal = mean(caudal), .by = c(año, semana)) |> 
-  left_join(d_altura, by = join_by(fecha)) %>%
-  mutate(temperatura = rnorm(nrow(.), 25, 3)) %>%
-  mutate(viento = rnorm(nrow(.), 5, 2))
-
-m_altura <- mean(d_altura$altura)
-fecha_altura_min <- min(d_altura$fecha)
-fecha_altura_max <- ymd(20001231)
-# fecha_altura_max <- max(d_altura$fecha)
+# figura serie temporal --------------------------------------------------
 
 estilo_serie_temporal <- function(g) {
   g +
@@ -519,7 +640,7 @@ estilo_serie_temporal <- function(g) {
     ) +
     coord_cartesian(ylim = c(0, NA)) +
     labs(y = "Altura (m)", x = NULL) +
-    theme_few(base_family = "Fira Code") +
+    ggthemes::theme_few(base_family = "Fira Code") +
     theme(aspect.ratio = .7) +
     theme_sub_axis(
       text = element_text(color = negro, face = "bold"),
@@ -586,7 +707,7 @@ f_serie_temporal_altura <- function(
       opts_hover(css = girafe_css(css = "fill:white;size:10pt")),
       opts_tooltip(
         opacity = 1,
-        css = glue(
+        css = glue::glue(
           "color:{negro};padding:5px;font-family: Fira Code;",
           "border-style:solid;border-color:{violeta};background:{blanco}"
         ),
@@ -604,46 +725,6 @@ f_descarga_serie_temporal <- function(FECHA_MIN, FECHA_MAX, FILE) {
   filter(d_altura, between(fecha, FECHA_MIN, FECHA_MAX)) |>
     vroom::vroom_write(FILE)
 }
-
-f_descarga_raster <- function(FECHA, TIPO, FILE) {
-  y <- r[[as.character(FECHA)]]
-  if (TIPO == "Turbidez") {
-    writeRaster(f_turb(FECHA), FILE)
-  } else if (TIPO == "Profundidad de disco") {
-    writeRaster(f_secchi(FECHA), FILE)
-  } else {
-    writeRaster(y, FILE)
-  }
-}
-
-rf_secchi <- get(load("modelos/rf_secchi.Rdata"))
-rf_turb <- get(load("modelos/rf_turb.Rdata"))
-
-f_secchi2 <- function(FECHA) {
-  y <- lista_agua[[as.character(FECHA)]] |>
-    crop(parana, mask = TRUE)
-  p <- terra::predict(y, workflowsets::extract_workflow(rf_secchi))
-  p <- setNames(p, "secchi")
-  p2 <- p * lista_mascara[[as.character(FECHA)]]
-  q <- global(p2, quantile, probs = c(0.00, 0.99), na.rm = TRUE)
-  p3 <- clamp(p2, q$X0., q$X99., values = FALSE)
-  return(p3)
-}
-
-f_turb2 <- function(FECHA) {
-  y <- lista_agua[[as.character(FECHA)]] |>
-    crop(parana, mask = TRUE)
-  p <- terra::predict(y, workflowsets::extract_workflow(rf_turb))
-  p <- setNames(p, "turb")
-  p2 <- p * lista_mascara[[as.character(FECHA)]]
-  q <- global(p2, quantile, probs = c(0.02, 0.98), na.rm = TRUE)
-  p3 <- clamp(p2, q$X2., q$X98., values = FALSE)
-  return(p3)
-}
-
-paletas <- RColorBrewer::brewer.pal.info |>
-  filter(category == "seq") |>
-  rownames()
 
 # quarto -----------------------------------------------------------------
 
