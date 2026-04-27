@@ -15,12 +15,17 @@ panel_caudal <- nav_panel(
     ),
     card(
       card_header(
-        span("Contexto", class = "card-titulo")
-      ),
+        span(tooltip(
+          span(
+            "Contexto",
+            bsicons::bs_icon("info-circle")
+          ),
+          HTML(
+            "Altura y caudal obtenidos del </b>Sistema Nacional de Información Hídrica</b>"
+          ),
+          placement = "right"
+        ), class = "card-titulo")),
       uiOutput("value_box_caudal")
     )
   )
 )
-
-# panel_caudal
-# 
