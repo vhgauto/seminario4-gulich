@@ -10,8 +10,8 @@ id = "019d775d-3cc3-1ed8-fc69-3a457d8f7a43"
 dashboard_url = "https://connect.posit.cloud/vhgauto/content/019d775d-3cc3-1ed8-fc69-3a457d8f7a43"
 direct_url = "https://019d775d-3cc3-1ed8-fc69-3a457d8f7a43.share.connect.posit.cloud"
 logs_url = "https://connect.posit.cloud/vhgauto/content/019d775d-3cc3-1ed8-fc69-3a457d8f7a43/history"
-deployed_at = "2026-04-25T00:56:26.943Z"
-bundle_id = "019dc21d-22ab-1104-a009-0bea90f950e8"
+deployed_at = "2026-04-26T03:48:55.293Z"
+bundle_id = "019dc7e1-6def-4a1c-110e-6b463e5f528a"
 files = [
     ".posit/publish/deployments/deployment-I0EQ.toml",
     ".posit/publish/seminario4-gulich-EO48.toml",
@@ -50,6 +50,7 @@ files = [
     "renv/settings.json",
     "scripts/.favicon.R",
     "scripts/.lectura_altura_caudal.R",
+    "scripts/panel_caudal.R",
     "scripts/panel_figura.R",
     "scripts/panel_integrantes.R",
     "scripts/panel_mapa.R",
