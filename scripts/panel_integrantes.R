@@ -30,7 +30,7 @@ panel_integrantes <- nav_panel(
       f_integrante("Dr", "Osvaldo Cardozo", "0000-0002-0345-4505")
     ),
     card(
-      h1("Instituciones"),
+      card_header(span("Instituciones", class = "card-titulo")),
       layout_columns(
         layout_column_wrap(
           width = 1 / 4,
