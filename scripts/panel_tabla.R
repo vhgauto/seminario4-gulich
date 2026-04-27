@@ -10,7 +10,7 @@ panel_tabla <- nav_panel(
       title = h1("Opciones"),
       checkboxGroupInput(
         "param_tabla",
-        h3("Parámetros"),
+        "Parámetros",
         param_nombre
       ),
       hr(),
