@@ -63,7 +63,8 @@ panel_serie_temporal <- nav_panel(
           class = "card-titulo"
         )
       ),
-      girafeOutput("serie_temporal_altura")
+      girafeOutput("serie_temporal_altura"),
+      card_footer("La altura promedio abarca el período 2000-01-01 al 2026-01-31.")
     )
   )
 )
