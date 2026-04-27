@@ -7,17 +7,9 @@ library(leaflet)
 library(leafem)
 library(leaflet.extras)
 library(ggiraph)
-# library(ggtext)
 library(patchwork)
-# library(ggthemes)
-# library(gt)
-# library(glue)
-# library(shinyWidgets)
-# library(brand.yml)
-# library(corrr)
 library(tidymodels)
 library(tidyverse)
-# library(ranger)
 
 if (FALSE) {
   library(brand.yml)
@@ -379,6 +371,9 @@ f_firma_espectral <- function(FECHA, VAR) {
       stroke = 1,
       alpha = .5
     ) +
+    scale_y_continuous(
+      labels = scales::label_number(big.mark = ".", decimal.mark = ",")
+    ) +
     scale_color_manual(
       values = colorRampPalette(c("brown", "turquoise"))(length(unique(
         e2$punto
@@ -540,6 +535,7 @@ f_logo <- function(ORG) {
       target = "_blank",
       .noWS = "before-end"
     ),
+    style = "center",
     class = "eqi-container"
   )
 }
@@ -651,6 +647,15 @@ estilo_serie_temporal <- function(g) {
       grid.minor = element_line(color = gris, linewidth = .1),
       background = element_blank()
     ) +
+    theme_sub_legend(
+      position = "inside",
+      position.inside = c(1, 1),
+      justification.inside = c(1, 0),
+      key.width = unit(25, "pt"),
+      key = element_blank(),
+      background = element_blank(),
+      margin = margin()
+    ) +
     theme_sub_plot(background = element_blank(), margin = margin(r = 10, l = 5))
 }
 
@@ -673,7 +678,7 @@ f_serie_temporal_altura <- function(
       ggplot(aes(fecha, altura)) +
       geom_hline(
         yintercept = m_altura,
-        color = verde,
+        aes(color = verde),
         linetype = 2,
         linewidth = 1
       ) +
@@ -683,10 +688,18 @@ f_serie_temporal_altura <- function(
     g_serie <- d_serie |>
       ggplot(aes(fecha, altura)) +
       geom_hline(
-        yintercept = m_altura,
-        color = verde,
+        data = tibble(y = m_altura),
+        mapping = aes(yintercept = y, color = verde),
         linetype = 2,
-        linewidth = 1
+        linewidth = 1,
+        inherit.aes = FALSE
+      ) +
+      scale_color_manual(
+        values = verde,
+        label = paste0(
+          "Altura promedio: ", formato(round(m_altura, 2), nsmall = 2), " m"
+        ),
+        name = NULL
       ) +
       geom_line(color = violeta, linewidth = .5) +
       geom_point_interactive(
