@@ -7,10 +7,10 @@ panel_serie_temporal <- nav_panel(
   ),
   layout_sidebar(
     sidebar = sidebar(
-      title = h1("Rango temporal"),
+      title = h1("Opciones"),
       dateInput(
         "fecha_altura_min",
-        label = h5("Fecha inicial"),
+        label = "Fecha inicial",
         value = fecha_altura_min,
         format = "dd-mm-yyyy",
         min = fecha_altura_min,
@@ -19,7 +19,7 @@ panel_serie_temporal <- nav_panel(
       ),
       dateInput(
         "fecha_altura_max",
-        label = h5("Fecha final"),
+        label = "Fecha final",
         value = fecha_altura_max,
         format = "dd-mm-yyyy",
         min = fecha_altura_min,
@@ -40,17 +40,21 @@ panel_serie_temporal <- nav_panel(
       h1("Datos de altura"),
       icon = HTML('<i class="bi bi-leaf-fill"></i>'),
       span(
-        "Los datos para la confección de la serie temporal de altura del Río Paraná proviene del ",
+        "Fuente de datos de la serie temporal de altura del Río Paraná: ",
         a(
           "Sistema Nacional de Información Hídrica",
           href = "https://snih.hidricosargentina.gob.ar/Filtros.aspx",
           target = "_blank",
-          .noWS = "before-end"
+          .noWS = "after"
         ),
         "."
       ),
       hr(),
-      downloadButton("descarga_serie_temporal", "Descargar datos de altura")
+      downloadButton(
+        "descarga_serie_temporal",
+        strong("Descargar datos de altura"),
+        style = glue::glue("background-color: {verde};color: white;")
+      )
     ),
     card(
       card_header(
