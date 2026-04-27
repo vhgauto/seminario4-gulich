@@ -8,9 +8,6 @@ source("scripts/panel_caudal.R")
 source("scripts/panel_publicaciones.R")
 source("scripts/panel_integrantes.R")
 
-# TODO: verificar símbolo decimal en figuras/tablas
-# TODO: verificar paquetes, no cargarlos a todos al inicio
-
 ui <- page_navbar(
   tags$head(tags$link(rel = "shortcut icon", href = "favicon.png")),
   title = a(
