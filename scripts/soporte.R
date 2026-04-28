@@ -324,7 +324,7 @@ f_firma_espectral <- function(FECHA, VAR) {
     select(all_of(c("punto", "banda", VAR))) |>
     rename("y" = 3) |>
     distinct() |>
-    mutate(label = paste0(round(y, 3), "\nPunto: ", punto))
+    mutate(label = paste0(formato(round(y, 3), nsmall = 3), "\nPunto: ", punto))
 
   ylim_min <- range(subset(d, fecha == FECHA)$reflect_acolite) |>
     min()
@@ -388,8 +388,13 @@ f_firma_espectral <- function(FECHA, VAR) {
     ) +
     labs(x = NULL, y = "R<sub>rs</sub>") +
     ggthemes::theme_few(base_family = "Fira Code") +
-    theme_sub_axis(text = element_text(color = negro)) +
-    theme_sub_axis_x(text = element_text(face = "bold")) +
+    theme_sub_axis(
+      text = element_text(color = negro),
+      ticks = element_blank()
+    ) +
+    theme_sub_axis_x(
+      text = element_text(face = "bold", margin = margin(t = 5))
+    ) +
     theme_sub_axis_y(
       title = ggtext::element_markdown(angle = 0, vjust = .5)
     ) +
@@ -450,11 +455,11 @@ f_caudal <- function() {
   d_caudal |>
     filter(year(fecha) < 2005) |>
     ggplot(aes(fecha, caudal)) +
-    geom_line(color = violeta, linewidth = .3) +
+    geom_line(color = violeta, linewidth = .5) +
     geom_point(
       size = 3,
       shape = 21,
-      fill = blanco,
+      fill = verde,
       color = violeta,
       stroke = 1
     ) +
@@ -466,10 +471,13 @@ f_caudal <- function() {
     ggthemes::theme_few(base_size = 22, base_family = "Fira Code") +
     theme_sub_panel(
       background = element_blank(),
-      grid.major = element_line(color = gris, linewidth = .3),
-      grid.minor = element_line(color = gris, linewidth = .1)
+      grid.major = element_line(color = gris, linewidth = .5),
+      grid.minor = element_line(color = gris, linewidth = .2)
     ) +
-    theme_sub_axis(text = element_text(color = negro)) +
+    theme_sub_axis(
+      text = element_text(color = negro),
+      ticks = element_blank()
+    ) +
     theme_sub_plot(background = element_rect(fill = blanco, color = NA)) +
     theme_sub_axis_left(title = ggtext::element_markdown())
 }
@@ -677,12 +685,27 @@ f_serie_temporal_altura <- function(
     g_ma <- d_serie |>
       ggplot(aes(fecha, altura)) +
       geom_hline(
-        yintercept = m_altura,
-        aes(color = verde),
+        data = tibble(y = m_altura),
+        mapping = aes(yintercept = y, color = verde),
         linetype = 2,
-        linewidth = 1
+        linewidth = 1,
+        inherit.aes = FALSE
       ) +
-      tidyquant::geom_ma(n = n_ma, linetype = 1, linewidth = 1, color = violeta)
+      tidyquant::geom_ma(
+        n = n_ma,
+        linetype = 1,
+        linewidth = 1,
+        color = violeta
+      ) +
+      scale_color_manual(
+        values = verde,
+        label = paste0(
+          "Altura promedio: ",
+          formato(round(m_altura, 2), nsmall = 2),
+          " m"
+        ),
+        name = NULL
+      )
     g <- estilo_serie_temporal(g_ma)
   } else {
     g_serie <- d_serie |>
@@ -697,7 +720,9 @@ f_serie_temporal_altura <- function(
       scale_color_manual(
         values = verde,
         label = paste0(
-          "Altura promedio: ", formato(round(m_altura, 2), nsmall = 2), " m"
+          "Altura promedio: ",
+          formato(round(m_altura, 2), nsmall = 2),
+          " m"
         ),
         name = NULL
       ) +
