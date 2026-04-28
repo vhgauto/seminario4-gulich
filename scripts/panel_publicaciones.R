@@ -52,7 +52,7 @@ panel_publicaciones <- nav_panel(
     ),
     span(
       icon_autor,
-      "Gauto VH, Utgés EM, Hervot EI, Tenev MD, Farías A, Bonansea M, Ferral A",
+      "Gauto V, Utgés E, Hervot E, Tenev M, Farías A, Bonansea M, Ferral A",
     ),
     span(icon_año, "2024")
   )
